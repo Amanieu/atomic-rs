@@ -9,6 +9,8 @@ This library will use native atomic instructions if possible, and will otherwise
 
 Only a subset of native atomic operations are supported on stable Rust (types which are the same size as `AtomicUsize`), but you can use the `nightly` Cargo feature on a nightly compiler to enable the full range of native atomic instructions. The `nightly` feature also enables `const fn` constructors which allow you to initialize static atomic variables.
 
+This crate uses `#![no_std]` and only depends on libcore.
+
 [Documentation](https://amanieu.github.io/atomic-rs/atomic/index.html)
 
 ## Usage
