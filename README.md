@@ -17,7 +17,7 @@ Add this to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-atomic = "0.2"
+atomic = "0.3"
 ```
 
 and this to your crate root:
@@ -30,7 +30,7 @@ To enable nightly-only features, add this to your `Cargo.toml` instead:
 
 ```toml
 [dependencies]
-atomic = {version = "0.2", features = ["nightly"]}
+atomic = {version = "0.3", features = ["nightly"]}
 ```
 
 ## License
