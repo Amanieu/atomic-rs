@@ -5,7 +5,7 @@ Generic Atomic<T> for Rust
 
 A Rust library which provides a generic `Atomic<T>` type for all `T: Copy` types, unlike the standard library which only provides a few fixed atomic types (`AtomicBool`, `AtomicIsize`, `AtomicUsize`, `AtomicPtr`).
 
-This library will use native atomic instructions if possible, and will otherwise fall back to a lock-based mechanism. You can use `Atomic::<T>::is_lock_free()` function to check whether native atomic operations are supported for a given type. Note that a type must have a power-of-2 size and alignment in order to be used by native atomic instructions.
+This library will use native atomic instructions if possible, and will otherwise fall back to a lock-based mechanism. You can use the `Atomic::<T>::is_lock_free()` function to check whether native atomic operations are supported for a given type. Note that a type must have a power-of-2 size and alignment in order to be used by native atomic instructions.
 
 Only a subset of native atomic operations are supported on stable Rust (types which are the same size as `AtomicUsize`), but you can use the `nightly` Cargo feature on a nightly compiler to enable the full range of native atomic instructions. The `nightly` feature also enables `const fn` constructors which allow you to initialize static atomic variables.
 
