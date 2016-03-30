@@ -1,6 +1,6 @@
 [package]
 name = "atomic"
-version = "0.1.0"
+version = "0.2.0"
 authors = ["Amanieu d'Antras <amanieu@gmail.com>"]
 description = "Generic Atomic<T> wrapper type"
 documentation = "https://amanieu.github.io/atomic-rs/atomic/index.html"
