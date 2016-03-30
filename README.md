@@ -1,5 +1,5 @@
-Generic Atomic<T> for Rust
-==========================
+Generic `Atomic<T>` for Rust
+============================
 
 [![Build Status](https://travis-ci.org/Amanieu/atomic-rs.svg?branch=master)](https://travis-ci.org/Amanieu/atomic-rs) [![Crates.io](https://img.shields.io/crates/v/atomic.svg)](https://crates.io/crates/atomic)
 
