@@ -11,7 +11,7 @@
 //! threads, and are the building blocks of other concurrent types.
 //!
 //! This library defines a generic atomic wrapper type `Atomic<T>` for all
-//! `T: Copy` types.
+//! `T: Copy + Send` types.
 //! Atomic types present operations that, when used correctly, synchronize
 //! updates between threads.
 //!
@@ -53,26 +53,26 @@ mod ops;
 
 /// A generic atomic wrapper type which allows an object to be safely shared
 /// between threads.
-pub struct Atomic<T: Copy> {
+pub struct Atomic<T: Copy + Send> {
     v: UnsafeCell<T>,
 }
 
-unsafe impl<T: Copy> Sync for Atomic<T> {}
+unsafe impl<T: Copy + Send> Sync for Atomic<T> {}
 
-impl<T: Copy + Default> Default for Atomic<T> {
+impl<T: Copy + Send + Default> Default for Atomic<T> {
     #[inline]
     fn default() -> Self {
         Self::new(Default::default())
     }
 }
 
-impl<T: Copy + fmt::Debug> fmt::Debug for Atomic<T> {
+impl<T: Copy + Send + fmt::Debug> fmt::Debug for Atomic<T> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         f.debug_tuple("Atomic").field(&self.load(Ordering::SeqCst)).finish()
     }
 }
 
-impl<T: Copy> Atomic<T> {
+impl<T: Copy + Send> Atomic<T> {
     /// Creates a new `Atomic`.
     #[inline]
     #[cfg(feature = "nightly")]
