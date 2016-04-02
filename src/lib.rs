@@ -344,7 +344,7 @@ mod tests {
         assert_eq!(Atomic::<i64>::is_lock_free(),
                    cfg!(any(target_pointer_width = "64",
                             all(feature = "nightly",
-                                any(target_arch = "i686", target_arch = "arm")))));
+                                any(target_arch = "x86", target_arch = "arm")))));
         assert_eq!(format!("{:?}", a), "Atomic(0)");
         assert_eq!(a.load(SeqCst), 0);
         a.store(1, SeqCst);

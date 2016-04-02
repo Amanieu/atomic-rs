@@ -19,7 +19,7 @@ pub fn atomic_is_lock_free<T>() -> bool {
         1 if mem::align_of::<T>() >= 1 => true,
         2 if mem::align_of::<T>() >= 2 => true,
         4 if mem::align_of::<T>() >= 4 => true,
-        #[cfg(any(target_pointer_width = "64", target_arch = "i686", target_arch = "arm"))]
+        #[cfg(any(target_pointer_width = "64", target_arch = "x86", target_arch = "arm"))]
         8 if mem::align_of::<T>() >= 8 => true,
         _ => false,
     }
@@ -47,7 +47,7 @@ pub unsafe fn atomic_load<T>(dst: *mut T, order: Ordering) -> T {
         4 if mem::align_of::<T>() >= 4 => {
             mem::transmute_copy(&atomic_load_raw(dst as *mut u32, order))
         }
-        #[cfg(any(target_pointer_width = "64", target_arch = "i686", target_arch = "arm"))]
+        #[cfg(any(target_pointer_width = "64", target_arch = "x86", target_arch = "arm"))]
         8 if mem::align_of::<T>() >= 8 => {
             mem::transmute_copy(&atomic_load_raw(dst as *mut u64, order))
         }
@@ -77,7 +77,7 @@ pub unsafe fn atomic_store<T>(dst: *mut T, val: T, order: Ordering) {
         4 if mem::align_of::<T>() >= 4 => {
             atomic_store_raw(dst as *mut u32, mem::transmute_copy(&val), order)
         }
-        #[cfg(any(target_pointer_width = "64", target_arch = "i686", target_arch = "arm"))]
+        #[cfg(any(target_pointer_width = "64", target_arch = "x86", target_arch = "arm"))]
         8 if mem::align_of::<T>() >= 8 => {
             atomic_store_raw(dst as *mut u64, mem::transmute_copy(&val), order)
         }
@@ -107,7 +107,7 @@ pub unsafe fn atomic_swap<T>(dst: *mut T, val: T, order: Ordering) -> T {
         4 if mem::align_of::<T>() >= 4 => {
             mem::transmute_copy(&atomic_swap_raw(dst as *mut u32, mem::transmute_copy(&val), order))
         }
-        #[cfg(any(target_pointer_width = "64", target_arch = "i686", target_arch = "arm"))]
+        #[cfg(any(target_pointer_width = "64", target_arch = "x86", target_arch = "arm"))]
         8 if mem::align_of::<T>() >= 8 => {
             mem::transmute_copy(&atomic_swap_raw(dst as *mut u64, mem::transmute_copy(&val), order))
         }
@@ -183,7 +183,7 @@ pub unsafe fn atomic_compare_exchange<T>(dst: *mut T,
                                                              success,
                                                              failure))
         }
-        #[cfg(any(target_pointer_width = "64", target_arch = "i686", target_arch = "arm"))]
+        #[cfg(any(target_pointer_width = "64", target_arch = "x86", target_arch = "arm"))]
         8 if mem::align_of::<T>() >= 8 => {
             mem::transmute_copy(&atomic_compare_exchange_raw(dst as *mut u64,
                                                              mem::transmute_copy(&current),
@@ -269,7 +269,7 @@ pub unsafe fn atomic_compare_exchange_weak<T>(dst: *mut T,
                                                                   success,
                                                                   failure))
         }
-        #[cfg(any(target_pointer_width = "64", target_arch = "i686", target_arch = "arm"))]
+        #[cfg(any(target_pointer_width = "64", target_arch = "x86", target_arch = "arm"))]
         8 if mem::align_of::<T>() >= 8 => {
             mem::transmute_copy(&atomic_compare_exchange_weak_raw(dst as *mut u64,
                                                                   mem::transmute_copy(&current),
@@ -297,7 +297,7 @@ pub unsafe fn atomic_add<T: Copy>(dst: *mut T, val: T, order: Ordering) -> T
 {
     match mem::size_of::<T>() {
         1 | 2 | 4 => atomic_add_raw(dst, val, order),
-        #[cfg(any(target_pointer_width = "64", target_arch = "i686", target_arch = "arm"))]
+        #[cfg(any(target_pointer_width = "64", target_arch = "x86", target_arch = "arm"))]
         8 => atomic_add_raw(dst, val, order),
         _ => fallback::atomic_add(dst, val),
     }
@@ -319,7 +319,7 @@ pub unsafe fn atomic_sub<T: Copy>(dst: *mut T, val: T, order: Ordering) -> T
 {
     match mem::size_of::<T>() {
         1 | 2 | 4 => atomic_sub_raw(dst, val, order),
-        #[cfg(any(target_pointer_width = "64", target_arch = "i686", target_arch = "arm"))]
+        #[cfg(any(target_pointer_width = "64", target_arch = "x86", target_arch = "arm"))]
         8 => atomic_sub_raw(dst, val, order),
         _ => fallback::atomic_sub(dst, val),
     }
@@ -342,7 +342,7 @@ pub unsafe fn atomic_and<T: Copy + ops::BitAnd<Output = T>>(dst: *mut T,
                                                             -> T {
     match mem::size_of::<T>() {
         1 | 2 | 4 => atomic_and_raw(dst, val, order),
-        #[cfg(any(target_pointer_width = "64", target_arch = "i686", target_arch = "arm"))]
+        #[cfg(any(target_pointer_width = "64", target_arch = "x86", target_arch = "arm"))]
         8 => atomic_and_raw(dst, val, order),
         _ => fallback::atomic_and(dst, val),
     }
@@ -365,7 +365,7 @@ pub unsafe fn atomic_or<T: Copy + ops::BitOr<Output = T>>(dst: *mut T,
                                                           -> T {
     match mem::size_of::<T>() {
         1 | 2 | 4 => atomic_or_raw(dst, val, order),
-        #[cfg(any(target_pointer_width = "64", target_arch = "i686", target_arch = "arm"))]
+        #[cfg(any(target_pointer_width = "64", target_arch = "x86", target_arch = "arm"))]
         8 => atomic_or_raw(dst, val, order),
         _ => fallback::atomic_or(dst, val),
     }
@@ -388,7 +388,7 @@ pub unsafe fn atomic_xor<T: Copy + ops::BitXor<Output = T>>(dst: *mut T,
                                                             -> T {
     match mem::size_of::<T>() {
         1 | 2 | 4 => atomic_xor_raw(dst, val, order),
-        #[cfg(any(target_pointer_width = "64", target_arch = "i686", target_arch = "arm"))]
+        #[cfg(any(target_pointer_width = "64", target_arch = "x86", target_arch = "arm"))]
         8 => atomic_xor_raw(dst, val, order),
         _ => fallback::atomic_xor(dst, val),
     }
