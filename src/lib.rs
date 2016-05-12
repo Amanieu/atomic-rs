@@ -32,7 +32,8 @@
 
 #![warn(missing_docs)]
 #![no_std]
-#![cfg_attr(feature = "nightly", feature(core_intrinsics, const_fn, extended_compare_and_swap))]
+#![cfg_attr(feature = "nightly", feature(core_intrinsics, const_fn,
+                                         extended_compare_and_swap, cfg_target_has_atomic))]
 
 #[cfg(test)]
 #[macro_use]
@@ -285,7 +286,8 @@ mod tests {
     #[test]
     fn atomic_i8() {
         let a = Atomic::new(0i8);
-        assert_eq!(Atomic::<i8>::is_lock_free(), cfg!(feature = "nightly"));
+        assert_eq!(Atomic::<i8>::is_lock_free(),
+                   cfg!(all(feature = "nightly", target_has_atomic = "8")));
         assert_eq!(format!("{:?}", a), "Atomic(0)");
         assert_eq!(a.load(SeqCst), 0);
         a.store(1, SeqCst);
@@ -304,7 +306,8 @@ mod tests {
     #[test]
     fn atomic_i16() {
         let a = Atomic::new(0i16);
-        assert_eq!(Atomic::<i16>::is_lock_free(), cfg!(feature = "nightly"));
+        assert_eq!(Atomic::<i16>::is_lock_free(),
+                   cfg!(all(feature = "nightly", target_has_atomic = "16")));
         assert_eq!(format!("{:?}", a), "Atomic(0)");
         assert_eq!(a.load(SeqCst), 0);
         a.store(1, SeqCst);
@@ -323,7 +326,8 @@ mod tests {
     fn atomic_i32() {
         let a = Atomic::new(0i32);
         assert_eq!(Atomic::<i32>::is_lock_free(),
-                   cfg!(any(feature = "nightly", target_pointer_width = "32")));
+                   cfg!(any(target_pointer_width = "32",
+                            all(feature = "nightly", target_has_atomic = "32"))));
         assert_eq!(format!("{:?}", a), "Atomic(0)");
         assert_eq!(a.load(SeqCst), 0);
         a.store(1, SeqCst);
@@ -343,8 +347,7 @@ mod tests {
         let a = Atomic::new(0i64);
         assert_eq!(Atomic::<i64>::is_lock_free(),
                    cfg!(any(target_pointer_width = "64",
-                            all(feature = "nightly",
-                                any(target_arch = "x86", target_arch = "arm")))));
+                            all(feature = "nightly", target_has_atomic = "64"))));
         assert_eq!(format!("{:?}", a), "Atomic(0)");
         assert_eq!(a.load(SeqCst), 0);
         a.store(1, SeqCst);
