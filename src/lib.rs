@@ -32,8 +32,8 @@
 
 #![warn(missing_docs)]
 #![no_std]
-#![cfg_attr(feature = "nightly", feature(core_intrinsics, const_fn,
-                                         extended_compare_and_swap, cfg_target_has_atomic))]
+#![cfg_attr(feature = "nightly", feature(const_fn, extended_compare_and_swap))]
+#![cfg_attr(feature = "nightly", feature(cfg_target_has_atomic, integer_atomics))]
 
 #[cfg(test)]
 #[macro_use]
