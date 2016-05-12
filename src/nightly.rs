@@ -315,13 +315,21 @@ pub unsafe fn atomic_add<T: Copy>(dst: *mut T, val: T, order: Ordering) -> T
 {
     match mem::size_of::<T>() {
         #[cfg(target_has_atomic = "8")]
-        1 => atomic_add_raw(dst, val, order),
+        1 if mem::align_of::<T>() >= 1 => {
+            mem::transmute_copy(&atomic_add_raw(dst as *mut u8, mem::transmute_copy(&val), order))
+        }
         #[cfg(target_has_atomic = "16")]
-        2 => atomic_add_raw(dst, val, order),
+        2 if mem::align_of::<T>() >= 2 => {
+            mem::transmute_copy(&atomic_add_raw(dst as *mut u16, mem::transmute_copy(&val), order))
+        }
         #[cfg(target_has_atomic = "32")]
-        4 => atomic_add_raw(dst, val, order),
+        4 if mem::align_of::<T>() >= 4 => {
+            mem::transmute_copy(&atomic_add_raw(dst as *mut u32, mem::transmute_copy(&val), order))
+        }
         #[cfg(target_has_atomic = "64")]
-        8 => atomic_add_raw(dst, val, order),
+        8 if mem::align_of::<T>() >= 8 => {
+            mem::transmute_copy(&atomic_add_raw(dst as *mut u64, mem::transmute_copy(&val), order))
+        }
         _ => fallback::atomic_add(dst, val),
     }
 }
@@ -342,13 +350,21 @@ pub unsafe fn atomic_sub<T: Copy>(dst: *mut T, val: T, order: Ordering) -> T
 {
     match mem::size_of::<T>() {
         #[cfg(target_has_atomic = "8")]
-        1 => atomic_sub_raw(dst, val, order),
+        1 if mem::align_of::<T>() >= 1 => {
+            mem::transmute_copy(&atomic_sub_raw(dst as *mut u8, mem::transmute_copy(&val), order))
+        }
         #[cfg(target_has_atomic = "16")]
-        2 => atomic_sub_raw(dst, val, order),
+        2 if mem::align_of::<T>() >= 2 => {
+            mem::transmute_copy(&atomic_sub_raw(dst as *mut u16, mem::transmute_copy(&val), order))
+        }
         #[cfg(target_has_atomic = "32")]
-        4 => atomic_sub_raw(dst, val, order),
+        4 if mem::align_of::<T>() >= 4 => {
+            mem::transmute_copy(&atomic_sub_raw(dst as *mut u32, mem::transmute_copy(&val), order))
+        }
         #[cfg(target_has_atomic = "64")]
-        8 => atomic_sub_raw(dst, val, order),
+        8 if mem::align_of::<T>() >= 8 => {
+            mem::transmute_copy(&atomic_sub_raw(dst as *mut u64, mem::transmute_copy(&val), order))
+        }
         _ => fallback::atomic_sub(dst, val),
     }
 }
@@ -370,13 +386,21 @@ pub unsafe fn atomic_and<T: Copy + ops::BitAnd<Output = T>>(dst: *mut T,
                                                             -> T {
     match mem::size_of::<T>() {
         #[cfg(target_has_atomic = "8")]
-        1 => atomic_and_raw(dst, val, order),
+        1 if mem::align_of::<T>() >= 1 => {
+            mem::transmute_copy(&atomic_and_raw(dst as *mut u8, mem::transmute_copy(&val), order))
+        }
         #[cfg(target_has_atomic = "16")]
-        2 => atomic_and_raw(dst, val, order),
+        2 if mem::align_of::<T>() >= 2 => {
+            mem::transmute_copy(&atomic_and_raw(dst as *mut u16, mem::transmute_copy(&val), order))
+        }
         #[cfg(target_has_atomic = "32")]
-        4 => atomic_and_raw(dst, val, order),
+        4 if mem::align_of::<T>() >= 4 => {
+            mem::transmute_copy(&atomic_and_raw(dst as *mut u32, mem::transmute_copy(&val), order))
+        }
         #[cfg(target_has_atomic = "64")]
-        8 => atomic_and_raw(dst, val, order),
+        8 if mem::align_of::<T>() >= 8 => {
+            mem::transmute_copy(&atomic_and_raw(dst as *mut u64, mem::transmute_copy(&val), order))
+        }
         _ => fallback::atomic_and(dst, val),
     }
 }
@@ -398,13 +422,21 @@ pub unsafe fn atomic_or<T: Copy + ops::BitOr<Output = T>>(dst: *mut T,
                                                           -> T {
     match mem::size_of::<T>() {
         #[cfg(target_has_atomic = "8")]
-        1 => atomic_or_raw(dst, val, order),
+        1 if mem::align_of::<T>() >= 1 => {
+            mem::transmute_copy(&atomic_or_raw(dst as *mut u8, mem::transmute_copy(&val), order))
+        }
         #[cfg(target_has_atomic = "16")]
-        2 => atomic_or_raw(dst, val, order),
+        2 if mem::align_of::<T>() >= 2 => {
+            mem::transmute_copy(&atomic_or_raw(dst as *mut u16, mem::transmute_copy(&val), order))
+        }
         #[cfg(target_has_atomic = "32")]
-        4 => atomic_or_raw(dst, val, order),
+        4 if mem::align_of::<T>() >= 4 => {
+            mem::transmute_copy(&atomic_or_raw(dst as *mut u32, mem::transmute_copy(&val), order))
+        }
         #[cfg(target_has_atomic = "64")]
-        8 => atomic_or_raw(dst, val, order),
+        8 if mem::align_of::<T>() >= 8 => {
+            mem::transmute_copy(&atomic_or_raw(dst as *mut u64, mem::transmute_copy(&val), order))
+        }
         _ => fallback::atomic_or(dst, val),
     }
 }
@@ -426,13 +458,21 @@ pub unsafe fn atomic_xor<T: Copy + ops::BitXor<Output = T>>(dst: *mut T,
                                                             -> T {
     match mem::size_of::<T>() {
         #[cfg(target_has_atomic = "8")]
-        1 => atomic_xor_raw(dst, val, order),
+        1 if mem::align_of::<T>() >= 1 => {
+            mem::transmute_copy(&atomic_xor_raw(dst as *mut u8, mem::transmute_copy(&val), order))
+        }
         #[cfg(target_has_atomic = "16")]
-        2 => atomic_xor_raw(dst, val, order),
+        2 if mem::align_of::<T>() >= 2 => {
+            mem::transmute_copy(&atomic_xor_raw(dst as *mut u16, mem::transmute_copy(&val), order))
+        }
         #[cfg(target_has_atomic = "32")]
-        4 => atomic_xor_raw(dst, val, order),
+        4 if mem::align_of::<T>() >= 4 => {
+            mem::transmute_copy(&atomic_xor_raw(dst as *mut u32, mem::transmute_copy(&val), order))
+        }
         #[cfg(target_has_atomic = "64")]
-        8 => atomic_xor_raw(dst, val, order),
+        8 if mem::align_of::<T>() >= 8 => {
+            mem::transmute_copy(&atomic_xor_raw(dst as *mut u64, mem::transmute_copy(&val), order))
+        }
         _ => fallback::atomic_xor(dst, val),
     }
 }
