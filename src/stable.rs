@@ -10,6 +10,7 @@ use core::ops;
 use core::num::Wrapping;
 use core::sync::atomic::{Ordering, AtomicUsize};
 
+#[path = "fallback.rs"]
 mod fallback;
 
 #[inline]
