@@ -44,8 +44,8 @@ pub use core::sync::atomic::{fence, Ordering};
 use core::cell::UnsafeCell;
 use core::fmt;
 
-mod ops;
 mod fallback;
+mod ops;
 
 /// A generic atomic wrapper type which allows an object to be safely shared
 /// between threads.
@@ -256,10 +256,11 @@ macro_rules! atomic_ops {
         }
     )*);
 }
-atomic_ops!{ i8 u8 i16 u16 i32 u32 i64 u64 }
+atomic_ops!{ i8 u8 i16 u16 i32 u32 i64 u64 isize usize i128 u128 }
 
 #[cfg(test)]
 mod tests {
+    use core::mem;
     use Atomic;
     use Ordering::*;
 
@@ -291,7 +292,10 @@ mod tests {
         let a = Atomic::new(0i8);
         assert_eq!(
             Atomic::<i8>::is_lock_free(),
-            cfg!(all(feature = "nightly", target_has_atomic = "8"))
+            cfg!(any(
+                target_pointer_width = "8",
+                all(feature = "nightly", target_has_atomic = "8")
+            ))
         );
         assert_eq!(format!("{:?}", a), "Atomic(0)");
         assert_eq!(a.load(SeqCst), 0);
@@ -313,7 +317,10 @@ mod tests {
         let a = Atomic::new(0i16);
         assert_eq!(
             Atomic::<i16>::is_lock_free(),
-            cfg!(all(feature = "nightly", target_has_atomic = "16"))
+            cfg!(any(
+                target_pointer_width = "16",
+                all(feature = "nightly", target_has_atomic = "16")
+            ))
         );
         assert_eq!(format!("{:?}", a), "Atomic(0)");
         assert_eq!(a.load(SeqCst), 0);
@@ -361,8 +368,50 @@ mod tests {
             cfg!(any(
                 target_pointer_width = "64",
                 all(feature = "nightly", target_has_atomic = "64")
+            )) && mem::align_of::<i64>() == 8
+        );
+        assert_eq!(format!("{:?}", a), "Atomic(0)");
+        assert_eq!(a.load(SeqCst), 0);
+        a.store(1, SeqCst);
+        assert_eq!(a.swap(2, SeqCst), 1);
+        assert_eq!(a.compare_exchange(5, 45, SeqCst, SeqCst), Err(2));
+        assert_eq!(a.compare_exchange(2, 3, SeqCst, SeqCst), Ok(2));
+        assert_eq!(a.fetch_add(123, SeqCst), 3);
+        assert_eq!(a.fetch_sub(-56, SeqCst), 126);
+        assert_eq!(a.fetch_and(7, SeqCst), 182);
+        assert_eq!(a.fetch_or(64, SeqCst), 6);
+        assert_eq!(a.fetch_xor(1, SeqCst), 70);
+        assert_eq!(a.load(SeqCst), 71);
+    }
+
+    #[test]
+    fn atomic_i128() {
+        let a = Atomic::new(0i128);
+        assert_eq!(
+            Atomic::<i128>::is_lock_free(),
+            cfg!(any(
+                target_pointer_width = "128",
+                all(feature = "nightly", target_has_atomic = "128")
             ))
         );
+        assert_eq!(format!("{:?}", a), "Atomic(0)");
+        assert_eq!(a.load(SeqCst), 0);
+        a.store(1, SeqCst);
+        assert_eq!(a.swap(2, SeqCst), 1);
+        assert_eq!(a.compare_exchange(5, 45, SeqCst, SeqCst), Err(2));
+        assert_eq!(a.compare_exchange(2, 3, SeqCst, SeqCst), Ok(2));
+        assert_eq!(a.fetch_add(123, SeqCst), 3);
+        assert_eq!(a.fetch_sub(-56, SeqCst), 126);
+        assert_eq!(a.fetch_and(7, SeqCst), 182);
+        assert_eq!(a.fetch_or(64, SeqCst), 6);
+        assert_eq!(a.fetch_xor(1, SeqCst), 70);
+        assert_eq!(a.load(SeqCst), 71);
+    }
+
+    #[test]
+    fn atomic_isize() {
+        let a = Atomic::new(0isize);
+        assert!(Atomic::<isize>::is_lock_free());
         assert_eq!(format!("{:?}", a), "Atomic(0)");
         assert_eq!(a.load(SeqCst), 0);
         a.store(1, SeqCst);
