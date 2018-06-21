@@ -32,7 +32,9 @@
 
 #![warn(missing_docs)]
 #![no_std]
-#![cfg_attr(feature = "nightly", feature(const_fn, cfg_target_has_atomic, integer_atomics))]
+#![cfg_attr(
+    feature = "nightly", feature(const_fn, cfg_target_has_atomic, integer_atomics, atomic_min_max)
+)]
 
 #[cfg(test)]
 #[macro_use]
@@ -221,7 +223,7 @@ impl Atomic<bool> {
     }
 }
 
-macro_rules! atomic_ops {
+macro_rules! atomic_ops_common {
     ($($t:ty)*) => ($(
         impl Atomic<$t> {
             /// Add to the current value, returning the previous value.
@@ -256,7 +258,48 @@ macro_rules! atomic_ops {
         }
     )*);
 }
-atomic_ops!{ i8 u8 i16 u16 i32 u32 i64 u64 isize usize i128 u128 }
+macro_rules! atomic_ops_signed {
+    ($($t:ty)*) => (
+        atomic_ops_common!{ $($t)* }
+        $(
+            impl Atomic<$t> {
+                /// Minimum with the current value.
+                #[inline]
+                pub fn fetch_min(&self, val: $t, order: Ordering) -> $t {
+                    unsafe { ops::atomic_min(self.v.get(), val, order) }
+                }
+
+                /// Maximum with the current value.
+                #[inline]
+                pub fn fetch_max(&self, val: $t, order: Ordering) -> $t {
+                    unsafe { ops::atomic_max(self.v.get(), val, order) }
+                }
+            }
+        )*
+    );
+}
+macro_rules! atomic_ops_unsigned {
+    ($($t:ty)*) => (
+        atomic_ops_common!{ $($t)* }
+        $(
+            impl Atomic<$t> {
+                /// Minimum with the current value.
+                #[inline]
+                pub fn fetch_min(&self, val: $t, order: Ordering) -> $t {
+                    unsafe { ops::atomic_umin(self.v.get(), val, order) }
+                }
+
+                /// Maximum with the current value.
+                #[inline]
+                pub fn fetch_max(&self, val: $t, order: Ordering) -> $t {
+                    unsafe { ops::atomic_umax(self.v.get(), val, order) }
+                }
+            }
+        )*
+    );
+}
+atomic_ops_signed!{ i8 i16 i32 i64 isize i128 }
+atomic_ops_unsigned!{ u8 u16 u32 u64 usize u128 }
 
 #[cfg(test)]
 mod tests {
@@ -309,7 +352,9 @@ mod tests {
         assert_eq!(a.fetch_and(7, SeqCst), -74);
         assert_eq!(a.fetch_or(64, SeqCst), 6);
         assert_eq!(a.fetch_xor(1, SeqCst), 70);
-        assert_eq!(a.load(SeqCst), 71);
+        assert_eq!(a.fetch_min(30, SeqCst), 71);
+        assert_eq!(a.fetch_max(-25, SeqCst), 30);
+        assert_eq!(a.load(SeqCst), 30);
     }
 
     #[test]
@@ -333,7 +378,9 @@ mod tests {
         assert_eq!(a.fetch_and(7, SeqCst), 182);
         assert_eq!(a.fetch_or(64, SeqCst), 6);
         assert_eq!(a.fetch_xor(1, SeqCst), 70);
-        assert_eq!(a.load(SeqCst), 71);
+        assert_eq!(a.fetch_min(30, SeqCst), 71);
+        assert_eq!(a.fetch_max(-25, SeqCst), 30);
+        assert_eq!(a.load(SeqCst), 30);
     }
 
     #[test]
@@ -357,7 +404,9 @@ mod tests {
         assert_eq!(a.fetch_and(7, SeqCst), 182);
         assert_eq!(a.fetch_or(64, SeqCst), 6);
         assert_eq!(a.fetch_xor(1, SeqCst), 70);
-        assert_eq!(a.load(SeqCst), 71);
+        assert_eq!(a.fetch_min(30, SeqCst), 71);
+        assert_eq!(a.fetch_max(-25, SeqCst), 30);
+        assert_eq!(a.load(SeqCst), 30);
     }
 
     #[test]
@@ -381,7 +430,9 @@ mod tests {
         assert_eq!(a.fetch_and(7, SeqCst), 182);
         assert_eq!(a.fetch_or(64, SeqCst), 6);
         assert_eq!(a.fetch_xor(1, SeqCst), 70);
-        assert_eq!(a.load(SeqCst), 71);
+        assert_eq!(a.fetch_min(30, SeqCst), 71);
+        assert_eq!(a.fetch_max(-25, SeqCst), 30);
+        assert_eq!(a.load(SeqCst), 30);
     }
 
     #[test]
@@ -405,7 +456,9 @@ mod tests {
         assert_eq!(a.fetch_and(7, SeqCst), 182);
         assert_eq!(a.fetch_or(64, SeqCst), 6);
         assert_eq!(a.fetch_xor(1, SeqCst), 70);
-        assert_eq!(a.load(SeqCst), 71);
+        assert_eq!(a.fetch_min(30, SeqCst), 71);
+        assert_eq!(a.fetch_max(-25, SeqCst), 30);
+        assert_eq!(a.load(SeqCst), 30);
     }
 
     #[test]
@@ -423,7 +476,159 @@ mod tests {
         assert_eq!(a.fetch_and(7, SeqCst), 182);
         assert_eq!(a.fetch_or(64, SeqCst), 6);
         assert_eq!(a.fetch_xor(1, SeqCst), 70);
-        assert_eq!(a.load(SeqCst), 71);
+        assert_eq!(a.fetch_min(30, SeqCst), 71);
+        assert_eq!(a.fetch_max(-25, SeqCst), 30);
+        assert_eq!(a.load(SeqCst), 30);
+    }
+
+    #[test]
+    fn atomic_u8() {
+        let a = Atomic::new(0u8);
+        assert_eq!(
+            Atomic::<u8>::is_lock_free(),
+            cfg!(any(
+                target_pointer_width = "8",
+                all(feature = "nightly", target_has_atomic = "8")
+            ))
+        );
+        assert_eq!(format!("{:?}", a), "Atomic(0)");
+        assert_eq!(a.load(SeqCst), 0);
+        a.store(1, SeqCst);
+        assert_eq!(a.swap(2, SeqCst), 1);
+        assert_eq!(a.compare_exchange(5, 45, SeqCst, SeqCst), Err(2));
+        assert_eq!(a.compare_exchange(2, 3, SeqCst, SeqCst), Ok(2));
+        assert_eq!(a.fetch_add(123, SeqCst), 3);
+        assert_eq!(a.fetch_sub(56, SeqCst), 126);
+        assert_eq!(a.fetch_and(7, SeqCst), 70);
+        assert_eq!(a.fetch_or(64, SeqCst), 6);
+        assert_eq!(a.fetch_xor(1, SeqCst), 70);
+        assert_eq!(a.fetch_min(30, SeqCst), 71);
+        assert_eq!(a.fetch_max(25, SeqCst), 30);
+        assert_eq!(a.load(SeqCst), 30);
+    }
+
+    #[test]
+    fn atomic_u16() {
+        let a = Atomic::new(0u16);
+        assert_eq!(
+            Atomic::<u16>::is_lock_free(),
+            cfg!(any(
+                target_pointer_width = "16",
+                all(feature = "nightly", target_has_atomic = "16")
+            ))
+        );
+        assert_eq!(format!("{:?}", a), "Atomic(0)");
+        assert_eq!(a.load(SeqCst), 0);
+        a.store(1, SeqCst);
+        assert_eq!(a.swap(2, SeqCst), 1);
+        assert_eq!(a.compare_exchange(5, 45, SeqCst, SeqCst), Err(2));
+        assert_eq!(a.compare_exchange(2, 3, SeqCst, SeqCst), Ok(2));
+        assert_eq!(a.fetch_add(123, SeqCst), 3);
+        assert_eq!(a.fetch_sub(56, SeqCst), 126);
+        assert_eq!(a.fetch_and(7, SeqCst), 70);
+        assert_eq!(a.fetch_or(64, SeqCst), 6);
+        assert_eq!(a.fetch_xor(1, SeqCst), 70);
+        assert_eq!(a.fetch_min(30, SeqCst), 71);
+        assert_eq!(a.fetch_max(25, SeqCst), 30);
+        assert_eq!(a.load(SeqCst), 30);
+    }
+
+    #[test]
+    fn atomic_u32() {
+        let a = Atomic::new(0u32);
+        assert_eq!(
+            Atomic::<u32>::is_lock_free(),
+            cfg!(any(
+                target_pointer_width = "32",
+                all(feature = "nightly", target_has_atomic = "32")
+            ))
+        );
+        assert_eq!(format!("{:?}", a), "Atomic(0)");
+        assert_eq!(a.load(SeqCst), 0);
+        a.store(1, SeqCst);
+        assert_eq!(a.swap(2, SeqCst), 1);
+        assert_eq!(a.compare_exchange(5, 45, SeqCst, SeqCst), Err(2));
+        assert_eq!(a.compare_exchange(2, 3, SeqCst, SeqCst), Ok(2));
+        assert_eq!(a.fetch_add(123, SeqCst), 3);
+        assert_eq!(a.fetch_sub(56, SeqCst), 126);
+        assert_eq!(a.fetch_and(7, SeqCst), 70);
+        assert_eq!(a.fetch_or(64, SeqCst), 6);
+        assert_eq!(a.fetch_xor(1, SeqCst), 70);
+        assert_eq!(a.fetch_min(30, SeqCst), 71);
+        assert_eq!(a.fetch_max(25, SeqCst), 30);
+        assert_eq!(a.load(SeqCst), 30);
+    }
+
+    #[test]
+    fn atomic_u64() {
+        let a = Atomic::new(0u64);
+        assert_eq!(
+            Atomic::<u64>::is_lock_free(),
+            cfg!(any(
+                target_pointer_width = "64",
+                all(feature = "nightly", target_has_atomic = "64")
+            )) && mem::align_of::<u64>() == 8
+        );
+        assert_eq!(format!("{:?}", a), "Atomic(0)");
+        assert_eq!(a.load(SeqCst), 0);
+        a.store(1, SeqCst);
+        assert_eq!(a.swap(2, SeqCst), 1);
+        assert_eq!(a.compare_exchange(5, 45, SeqCst, SeqCst), Err(2));
+        assert_eq!(a.compare_exchange(2, 3, SeqCst, SeqCst), Ok(2));
+        assert_eq!(a.fetch_add(123, SeqCst), 3);
+        assert_eq!(a.fetch_sub(56, SeqCst), 126);
+        assert_eq!(a.fetch_and(7, SeqCst), 70);
+        assert_eq!(a.fetch_or(64, SeqCst), 6);
+        assert_eq!(a.fetch_xor(1, SeqCst), 70);
+        assert_eq!(a.fetch_min(30, SeqCst), 71);
+        assert_eq!(a.fetch_max(25, SeqCst), 30);
+        assert_eq!(a.load(SeqCst), 30);
+    }
+
+    #[test]
+    fn atomic_u128() {
+        let a = Atomic::new(0u128);
+        assert_eq!(
+            Atomic::<u128>::is_lock_free(),
+            cfg!(any(
+                target_pointer_width = "128",
+                all(feature = "nightly", target_has_atomic = "128")
+            ))
+        );
+        assert_eq!(format!("{:?}", a), "Atomic(0)");
+        assert_eq!(a.load(SeqCst), 0);
+        a.store(1, SeqCst);
+        assert_eq!(a.swap(2, SeqCst), 1);
+        assert_eq!(a.compare_exchange(5, 45, SeqCst, SeqCst), Err(2));
+        assert_eq!(a.compare_exchange(2, 3, SeqCst, SeqCst), Ok(2));
+        assert_eq!(a.fetch_add(123, SeqCst), 3);
+        assert_eq!(a.fetch_sub(56, SeqCst), 126);
+        assert_eq!(a.fetch_and(7, SeqCst), 70);
+        assert_eq!(a.fetch_or(64, SeqCst), 6);
+        assert_eq!(a.fetch_xor(1, SeqCst), 70);
+        assert_eq!(a.fetch_min(30, SeqCst), 71);
+        assert_eq!(a.fetch_max(25, SeqCst), 30);
+        assert_eq!(a.load(SeqCst), 30);
+    }
+
+    #[test]
+    fn atomic_usize() {
+        let a = Atomic::new(0usize);
+        assert!(Atomic::<usize>::is_lock_free());
+        assert_eq!(format!("{:?}", a), "Atomic(0)");
+        assert_eq!(a.load(SeqCst), 0);
+        a.store(1, SeqCst);
+        assert_eq!(a.swap(2, SeqCst), 1);
+        assert_eq!(a.compare_exchange(5, 45, SeqCst, SeqCst), Err(2));
+        assert_eq!(a.compare_exchange(2, 3, SeqCst, SeqCst), Ok(2));
+        assert_eq!(a.fetch_add(123, SeqCst), 3);
+        assert_eq!(a.fetch_sub(56, SeqCst), 126);
+        assert_eq!(a.fetch_and(7, SeqCst), 70);
+        assert_eq!(a.fetch_or(64, SeqCst), 6);
+        assert_eq!(a.fetch_xor(1, SeqCst), 70);
+        assert_eq!(a.fetch_min(30, SeqCst), 71);
+        assert_eq!(a.fetch_max(25, SeqCst), 30);
+        assert_eq!(a.load(SeqCst), 30);
     }
 
     #[test]

@@ -5,12 +5,13 @@
 // http://opensource.org/licenses/MIT>, at your option. This file may not be
 // copied, modified, or distributed except according to those terms.
 
+use core::cmp;
 use core::mem;
 use core::num::Wrapping;
 use core::ops;
 use core::ptr;
 use core::slice;
-use core::sync::atomic::{self, Ordering, AtomicUsize, ATOMIC_USIZE_INIT};
+use core::sync::atomic::{self, AtomicUsize, Ordering, ATOMIC_USIZE_INIT};
 
 // We use an AtomicUsize instead of an AtomicBool because it performs better
 // on architectures that don't have byte-sized atomics.
@@ -21,7 +22,11 @@ struct SpinLock(AtomicUsize);
 
 impl SpinLock {
     fn lock(&self) {
-        while self.0.compare_exchange_weak(0, 1, Ordering::Acquire, Ordering::Relaxed).is_err() {
+        while self
+            .0
+            .compare_exchange_weak(0, 1, Ordering::Acquire, Ordering::Relaxed)
+            .is_err()
+        {
             while self.0.load(Ordering::Relaxed) != 0 {
                 atomic::spin_loop_hint();
             }
@@ -171,5 +176,21 @@ pub unsafe fn atomic_xor<T: Copy + ops::BitXor<Output = T>>(dst: *mut T, val: T)
     let _l = lock(dst as usize);
     let result = ptr::read(dst);
     ptr::write(dst, result ^ val);
+    result
+}
+
+#[inline]
+pub unsafe fn atomic_min<T: Copy + cmp::Ord>(dst: *mut T, val: T) -> T {
+    let _l = lock(dst as usize);
+    let result = ptr::read(dst);
+    ptr::write(dst, cmp::min(result, val));
+    result
+}
+
+#[inline]
+pub unsafe fn atomic_max<T: Copy + cmp::Ord>(dst: *mut T, val: T) -> T {
+    let _l = lock(dst as usize);
+    let result = ptr::read(dst);
+    ptr::write(dst, cmp::max(result, val));
     result
 }

@@ -5,6 +5,7 @@
 // http://opensource.org/licenses/MIT>, at your option. This file may not be
 // copied, modified, or distributed except according to those terms.
 
+use core::cmp;
 use core::mem;
 use core::num::Wrapping;
 use core::ops;
@@ -12,7 +13,9 @@ use core::sync::atomic::Ordering;
 use fallback;
 
 #[cfg(feature = "nightly")]
-use core::sync::atomic::{AtomicU16, AtomicU32, AtomicU64, AtomicU8};
+use core::sync::atomic::{
+    AtomicI16, AtomicI32, AtomicI64, AtomicI8, AtomicU16, AtomicU32, AtomicU64, AtomicU8,
+};
 
 #[cfg(not(feature = "nightly"))]
 use core::sync::atomic::AtomicUsize;
@@ -516,5 +519,161 @@ pub unsafe fn atomic_xor<T: Copy + ops::BitXor<Output = T>>(
             )
         }
         _ => fallback::atomic_xor(dst, val),
+    }
+}
+
+#[inline]
+pub unsafe fn atomic_min<T: Copy + cmp::Ord>(dst: *mut T, val: T, order: Ordering) -> T {
+    // Silence warning, fetch_min is not stable yet
+    #[cfg(not(feature = "nightly"))]
+    let _ = order;
+
+    match mem::size_of::<T>() {
+        #[cfg(all(feature = "nightly", target_has_atomic = "8"))]
+        1 if mem::align_of::<T>() >= 1 =>
+        {
+            mem::transmute_copy(
+                &(*(dst as *const AtomicI8)).fetch_min(mem::transmute_copy(&val), order),
+            )
+        }
+        #[cfg(all(feature = "nightly", target_has_atomic = "16"))]
+        2 if mem::align_of::<T>() >= 2 =>
+        {
+            mem::transmute_copy(
+                &(*(dst as *const AtomicI16)).fetch_min(mem::transmute_copy(&val), order),
+            )
+        }
+        #[cfg(all(feature = "nightly", target_has_atomic = "32"))]
+        4 if mem::align_of::<T>() >= 4 =>
+        {
+            mem::transmute_copy(
+                &(*(dst as *const AtomicI32)).fetch_min(mem::transmute_copy(&val), order),
+            )
+        }
+        #[cfg(all(feature = "nightly", target_has_atomic = "64"))]
+        8 if mem::align_of::<T>() >= 8 =>
+        {
+            mem::transmute_copy(
+                &(*(dst as *const AtomicI64)).fetch_min(mem::transmute_copy(&val), order),
+            )
+        }
+        _ => fallback::atomic_min(dst, val),
+    }
+}
+
+#[inline]
+pub unsafe fn atomic_max<T: Copy + cmp::Ord>(dst: *mut T, val: T, order: Ordering) -> T {
+    // Silence warning, fetch_min is not stable yet
+    #[cfg(not(feature = "nightly"))]
+    let _ = order;
+
+    match mem::size_of::<T>() {
+        #[cfg(all(feature = "nightly", target_has_atomic = "8"))]
+        1 if mem::align_of::<T>() >= 1 =>
+        {
+            mem::transmute_copy(
+                &(*(dst as *const AtomicI8)).fetch_max(mem::transmute_copy(&val), order),
+            )
+        }
+        #[cfg(all(feature = "nightly", target_has_atomic = "16"))]
+        2 if mem::align_of::<T>() >= 2 =>
+        {
+            mem::transmute_copy(
+                &(*(dst as *const AtomicI16)).fetch_max(mem::transmute_copy(&val), order),
+            )
+        }
+        #[cfg(all(feature = "nightly", target_has_atomic = "32"))]
+        4 if mem::align_of::<T>() >= 4 =>
+        {
+            mem::transmute_copy(
+                &(*(dst as *const AtomicI32)).fetch_max(mem::transmute_copy(&val), order),
+            )
+        }
+        #[cfg(all(feature = "nightly", target_has_atomic = "64"))]
+        8 if mem::align_of::<T>() >= 8 =>
+        {
+            mem::transmute_copy(
+                &(*(dst as *const AtomicI64)).fetch_max(mem::transmute_copy(&val), order),
+            )
+        }
+        _ => fallback::atomic_max(dst, val),
+    }
+}
+
+#[inline]
+pub unsafe fn atomic_umin<T: Copy + cmp::Ord>(dst: *mut T, val: T, order: Ordering) -> T {
+    // Silence warning, fetch_min is not stable yet
+    #[cfg(not(feature = "nightly"))]
+    let _ = order;
+
+    match mem::size_of::<T>() {
+        #[cfg(all(feature = "nightly", target_has_atomic = "8"))]
+        1 if mem::align_of::<T>() >= 1 =>
+        {
+            mem::transmute_copy(
+                &(*(dst as *const AtomicU8)).fetch_min(mem::transmute_copy(&val), order),
+            )
+        }
+        #[cfg(all(feature = "nightly", target_has_atomic = "16"))]
+        2 if mem::align_of::<T>() >= 2 =>
+        {
+            mem::transmute_copy(
+                &(*(dst as *const AtomicU16)).fetch_min(mem::transmute_copy(&val), order),
+            )
+        }
+        #[cfg(all(feature = "nightly", target_has_atomic = "32"))]
+        4 if mem::align_of::<T>() >= 4 =>
+        {
+            mem::transmute_copy(
+                &(*(dst as *const AtomicU32)).fetch_min(mem::transmute_copy(&val), order),
+            )
+        }
+        #[cfg(all(feature = "nightly", target_has_atomic = "64"))]
+        8 if mem::align_of::<T>() >= 8 =>
+        {
+            mem::transmute_copy(
+                &(*(dst as *const AtomicU64)).fetch_min(mem::transmute_copy(&val), order),
+            )
+        }
+        _ => fallback::atomic_min(dst, val),
+    }
+}
+
+#[inline]
+pub unsafe fn atomic_umax<T: Copy + cmp::Ord>(dst: *mut T, val: T, order: Ordering) -> T {
+    // Silence warning, fetch_min is not stable yet
+    #[cfg(not(feature = "nightly"))]
+    let _ = order;
+
+    match mem::size_of::<T>() {
+        #[cfg(all(feature = "nightly", target_has_atomic = "8"))]
+        1 if mem::align_of::<T>() >= 1 =>
+        {
+            mem::transmute_copy(
+                &(*(dst as *const AtomicU8)).fetch_max(mem::transmute_copy(&val), order),
+            )
+        }
+        #[cfg(all(feature = "nightly", target_has_atomic = "16"))]
+        2 if mem::align_of::<T>() >= 2 =>
+        {
+            mem::transmute_copy(
+                &(*(dst as *const AtomicU16)).fetch_max(mem::transmute_copy(&val), order),
+            )
+        }
+        #[cfg(all(feature = "nightly", target_has_atomic = "32"))]
+        4 if mem::align_of::<T>() >= 4 =>
+        {
+            mem::transmute_copy(
+                &(*(dst as *const AtomicU32)).fetch_max(mem::transmute_copy(&val), order),
+            )
+        }
+        #[cfg(all(feature = "nightly", target_has_atomic = "64"))]
+        8 if mem::align_of::<T>() >= 8 =>
+        {
+            mem::transmute_copy(
+                &(*(dst as *const AtomicU64)).fetch_max(mem::transmute_copy(&val), order),
+            )
+        }
+        _ => fallback::atomic_max(dst, val),
     }
 }
