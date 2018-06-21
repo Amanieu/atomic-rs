@@ -10,7 +10,28 @@ use core::num::Wrapping;
 use core::ops;
 use core::ptr;
 use core::slice;
-use core::sync::atomic::{AtomicBool, Ordering, ATOMIC_BOOL_INIT};
+use core::sync::atomic::{self, Ordering, AtomicUsize, ATOMIC_USIZE_INIT};
+
+// We use an AtomicUsize instead of an AtomicBool because it performs better
+// on architectures that don't have byte-sized atomics.
+//
+// We give each spinlock its own cache line to avoid false sharing.
+#[repr(align(64))]
+struct SpinLock(AtomicUsize);
+
+impl SpinLock {
+    fn lock(&self) {
+        while self.0.compare_exchange_weak(0, 1, Ordering::Acquire, Ordering::Relaxed).is_err() {
+            while self.0.load(Ordering::Relaxed) != 0 {
+                atomic::spin_loop_hint();
+            }
+        }
+    }
+
+    fn unlock(&self) {
+        self.0.store(0, Ordering::Release);
+    }
+}
 
 // A big array of spinlocks which we use to guard atomic accesses. A spinlock is
 // chosen based on a hash of the address of the atomic object, which helps to
@@ -32,24 +53,16 @@ macro_rules! array {
         => {array!(@accum (16, $($es,)* $($es),*) -> ($($body)*))};
     (@accum (64, $($es:expr),*) -> ($($body:tt)*))
         => {array!(@accum (32, $($es,)* $($es),*) -> ($($body)*))};
-    (@accum (128, $($es:expr),*) -> ($($body:tt)*))
-        => {array!(@accum (64, $($es,)* $($es),*) -> ($($body)*))};
-    (@accum (256, $($es:expr),*) -> ($($body:tt)*))
-        => {array!(@accum (128, $($es,)* $($es),*) -> ($($body)*))};
-    (@accum (512, $($es:expr),*) -> ($($body:tt)*))
-        => {array!(@accum (256, $($es,)* $($es),*) -> ($($body)*))};
-    (@accum (1024, $($es:expr),*) -> ($($body:tt)*))
-        => {array!(@accum (512, $($es,)* $($es),*) -> ($($body)*))};
 
     (@as_expr $e:expr) => {$e};
 
     [$e:expr; $n:tt] => { array!(@accum ($n, $e) -> ()) };
 }
-static SPINLOCKS: [AtomicBool; 1024] = array![ATOMIC_BOOL_INIT; 1024];
+static SPINLOCKS: [SpinLock; 64] = array![SpinLock(ATOMIC_USIZE_INIT); 64];
 
 // Spinlock pointer hashing function from compiler-rt
 #[inline]
-fn lock_for_addr(addr: usize) -> &'static AtomicBool {
+fn lock_for_addr(addr: usize) -> &'static SpinLock {
     // Disregard the lowest 4 bits.  We want all values that may be part of the
     // same memory operation to hash to the same value and therefore use the same
     // lock.
@@ -64,29 +77,18 @@ fn lock_for_addr(addr: usize) -> &'static AtomicBool {
     &SPINLOCKS[hash & (SPINLOCKS.len() - 1)]
 }
 
-#[cfg(not(feature = "nightly"))]
 #[inline]
 fn lock(addr: usize) -> LockGuard {
     let lock = lock_for_addr(addr);
-    while lock.compare_and_swap(false, true, Ordering::Acquire) {}
-    LockGuard(lock)
-}
-#[cfg(feature = "nightly")]
-#[inline]
-fn lock(addr: usize) -> LockGuard {
-    let lock = lock_for_addr(addr);
-    while lock
-        .compare_exchange_weak(false, true, Ordering::Acquire, Ordering::Relaxed)
-        .is_err()
-    {}
+    lock.lock();
     LockGuard(lock)
 }
 
-struct LockGuard(&'static AtomicBool);
+struct LockGuard(&'static SpinLock);
 impl Drop for LockGuard {
     #[inline]
     fn drop(&mut self) {
-        self.0.store(false, Ordering::Release);
+        self.0.unlock();
     }
 }
 
