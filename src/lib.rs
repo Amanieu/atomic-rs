@@ -32,8 +32,7 @@
 
 #![warn(missing_docs)]
 #![no_std]
-#![cfg_attr(feature = "nightly", feature(const_fn, extended_compare_and_swap))]
-#![cfg_attr(feature = "nightly", feature(cfg_target_has_atomic, integer_atomics))]
+#![cfg_attr(feature = "nightly", feature(const_fn, cfg_target_has_atomic, integer_atomics))]
 
 #[cfg(test)]
 #[macro_use]
@@ -45,12 +44,8 @@ pub use core::sync::atomic::{fence, Ordering};
 use core::cell::UnsafeCell;
 use core::fmt;
 
-#[cfg(feature = "nightly")]
-#[path = "nightly.rs"]
 mod ops;
-#[cfg(not(feature = "nightly"))]
-#[path = "stable.rs"]
-mod ops;
+mod fallback;
 
 /// A generic atomic wrapper type which allows an object to be safely shared
 /// between threads.
