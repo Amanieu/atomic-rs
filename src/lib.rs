@@ -40,7 +40,7 @@
 extern crate std;
 
 // Re-export some useful definitions from libcore
-pub use core::sync::atomic::{Ordering, fence};
+pub use core::sync::atomic::{fence, Ordering};
 
 use core::cell::UnsafeCell;
 use core::fmt;
@@ -70,7 +70,9 @@ impl<T: Copy + Default> Default for Atomic<T> {
 
 impl<T: Copy + fmt::Debug> fmt::Debug for Atomic<T> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        f.debug_tuple("Atomic").field(&self.load(Ordering::SeqCst)).finish()
+        f.debug_tuple("Atomic")
+            .field(&self.load(Ordering::SeqCst))
+            .finish()
     }
 }
 
@@ -79,14 +81,18 @@ impl<T: Copy> Atomic<T> {
     #[inline]
     #[cfg(feature = "nightly")]
     pub const fn new(v: T) -> Atomic<T> {
-        Atomic { v: UnsafeCell::new(v) }
+        Atomic {
+            v: UnsafeCell::new(v),
+        }
     }
 
     /// Creates a new `Atomic`.
     #[inline]
     #[cfg(not(feature = "nightly"))]
     pub fn new(v: T) -> Atomic<T> {
-        Atomic { v: UnsafeCell::new(v) }
+        Atomic {
+            v: UnsafeCell::new(v),
+        }
     }
 
     /// Checks if `Atomic` objects of this type are lock-free.
@@ -149,12 +155,13 @@ impl<T: Copy> Atomic<T> {
     /// when the operation fails. The failure ordering can't be `Acquire` or
     /// `AcqRel` and must be equivalent or weaker than the success ordering.
     #[inline]
-    pub fn compare_exchange(&self,
-                            current: T,
-                            new: T,
-                            success: Ordering,
-                            failure: Ordering)
-                            -> Result<T, T> {
+    pub fn compare_exchange(
+        &self,
+        current: T,
+        new: T,
+        success: Ordering,
+        failure: Ordering,
+    ) -> Result<T, T> {
         unsafe { ops::atomic_compare_exchange(self.v.get(), current, new, success, failure) }
     }
 
@@ -173,12 +180,13 @@ impl<T: Copy> Atomic<T> {
     /// `AcqRel` and must be equivalent or weaker than the success ordering.
     /// success ordering.
     #[inline]
-    pub fn compare_exchange_weak(&self,
-                                 current: T,
-                                 new: T,
-                                 success: Ordering,
-                                 failure: Ordering)
-                                 -> Result<T, T> {
+    pub fn compare_exchange_weak(
+        &self,
+        current: T,
+        new: T,
+        success: Ordering,
+        failure: Ordering,
+    ) -> Result<T, T> {
         unsafe { ops::atomic_compare_exchange_weak(self.v.get(), current, new, success, failure) }
     }
 }
@@ -286,8 +294,10 @@ mod tests {
     #[test]
     fn atomic_i8() {
         let a = Atomic::new(0i8);
-        assert_eq!(Atomic::<i8>::is_lock_free(),
-                   cfg!(all(feature = "nightly", target_has_atomic = "8")));
+        assert_eq!(
+            Atomic::<i8>::is_lock_free(),
+            cfg!(all(feature = "nightly", target_has_atomic = "8"))
+        );
         assert_eq!(format!("{:?}", a), "Atomic(0)");
         assert_eq!(a.load(SeqCst), 0);
         a.store(1, SeqCst);
@@ -306,8 +316,10 @@ mod tests {
     #[test]
     fn atomic_i16() {
         let a = Atomic::new(0i16);
-        assert_eq!(Atomic::<i16>::is_lock_free(),
-                   cfg!(all(feature = "nightly", target_has_atomic = "16")));
+        assert_eq!(
+            Atomic::<i16>::is_lock_free(),
+            cfg!(all(feature = "nightly", target_has_atomic = "16"))
+        );
         assert_eq!(format!("{:?}", a), "Atomic(0)");
         assert_eq!(a.load(SeqCst), 0);
         a.store(1, SeqCst);
@@ -325,9 +337,13 @@ mod tests {
     #[test]
     fn atomic_i32() {
         let a = Atomic::new(0i32);
-        assert_eq!(Atomic::<i32>::is_lock_free(),
-                   cfg!(any(target_pointer_width = "32",
-                            all(feature = "nightly", target_has_atomic = "32"))));
+        assert_eq!(
+            Atomic::<i32>::is_lock_free(),
+            cfg!(any(
+                target_pointer_width = "32",
+                all(feature = "nightly", target_has_atomic = "32")
+            ))
+        );
         assert_eq!(format!("{:?}", a), "Atomic(0)");
         assert_eq!(a.load(SeqCst), 0);
         a.store(1, SeqCst);
@@ -345,9 +361,13 @@ mod tests {
     #[test]
     fn atomic_i64() {
         let a = Atomic::new(0i64);
-        assert_eq!(Atomic::<i64>::is_lock_free(),
-                   cfg!(any(target_pointer_width = "64",
-                            all(feature = "nightly", target_has_atomic = "64"))));
+        assert_eq!(
+            Atomic::<i64>::is_lock_free(),
+            cfg!(any(
+                target_pointer_width = "64",
+                all(feature = "nightly", target_has_atomic = "64")
+            ))
+        );
         assert_eq!(format!("{:?}", a), "Atomic(0)");
         assert_eq!(a.load(SeqCst), 0);
         a.store(1, SeqCst);
@@ -370,10 +390,14 @@ mod tests {
         assert_eq!(a.load(SeqCst), Foo(0, 0));
         a.store(Foo(1, 1), SeqCst);
         assert_eq!(a.swap(Foo(2, 2), SeqCst), Foo(1, 1));
-        assert_eq!(a.compare_exchange(Foo(5, 5), Foo(45, 45), SeqCst, SeqCst),
-                   Err(Foo(2, 2)));
-        assert_eq!(a.compare_exchange(Foo(2, 2), Foo(3, 3), SeqCst, SeqCst),
-                   Ok(Foo(2, 2)));
+        assert_eq!(
+            a.compare_exchange(Foo(5, 5), Foo(45, 45), SeqCst, SeqCst),
+            Err(Foo(2, 2))
+        );
+        assert_eq!(
+            a.compare_exchange(Foo(2, 2), Foo(3, 3), SeqCst, SeqCst),
+            Ok(Foo(2, 2))
+        );
         assert_eq!(a.load(SeqCst), Foo(3, 3));
     }
 
@@ -385,26 +409,36 @@ mod tests {
         assert_eq!(a.load(SeqCst), Bar(0, 0));
         a.store(Bar(1, 1), SeqCst);
         assert_eq!(a.swap(Bar(2, 2), SeqCst), Bar(1, 1));
-        assert_eq!(a.compare_exchange(Bar(5, 5), Bar(45, 45), SeqCst, SeqCst),
-                   Err(Bar(2, 2)));
-        assert_eq!(a.compare_exchange(Bar(2, 2), Bar(3, 3), SeqCst, SeqCst),
-                   Ok(Bar(2, 2)));
+        assert_eq!(
+            a.compare_exchange(Bar(5, 5), Bar(45, 45), SeqCst, SeqCst),
+            Err(Bar(2, 2))
+        );
+        assert_eq!(
+            a.compare_exchange(Bar(2, 2), Bar(3, 3), SeqCst, SeqCst),
+            Ok(Bar(2, 2))
+        );
         assert_eq!(a.load(SeqCst), Bar(3, 3));
     }
 
     #[test]
     fn atomic_quxx() {
         let a = Atomic::default();
-        assert_eq!(Atomic::<Quux>::is_lock_free(),
-                   cfg!(any(feature = "nightly", target_pointer_width = "32")));
+        assert_eq!(
+            Atomic::<Quux>::is_lock_free(),
+            cfg!(any(feature = "nightly", target_pointer_width = "32"))
+        );
         assert_eq!(format!("{:?}", a), "Atomic(Quux(0))");
         assert_eq!(a.load(SeqCst), Quux(0));
         a.store(Quux(1), SeqCst);
         assert_eq!(a.swap(Quux(2), SeqCst), Quux(1));
-        assert_eq!(a.compare_exchange(Quux(5), Quux(45), SeqCst, SeqCst),
-                   Err(Quux(2)));
-        assert_eq!(a.compare_exchange(Quux(2), Quux(3), SeqCst, SeqCst),
-                   Ok(Quux(2)));
+        assert_eq!(
+            a.compare_exchange(Quux(5), Quux(45), SeqCst, SeqCst),
+            Err(Quux(2))
+        );
+        assert_eq!(
+            a.compare_exchange(Quux(2), Quux(3), SeqCst, SeqCst),
+            Ok(Quux(2))
+        );
         assert_eq!(a.load(SeqCst), Quux(3));
     }
 }

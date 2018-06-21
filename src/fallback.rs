@@ -5,12 +5,12 @@
 // http://opensource.org/licenses/MIT>, at your option. This file may not be
 // copied, modified, or distributed except according to those terms.
 
-use core::ptr;
 use core::mem;
-use core::slice;
-use core::ops;
 use core::num::Wrapping;
-use core::sync::atomic::{Ordering, AtomicBool, ATOMIC_BOOL_INIT};
+use core::ops;
+use core::ptr;
+use core::slice;
+use core::sync::atomic::{AtomicBool, Ordering, ATOMIC_BOOL_INIT};
 
 // A big array of spinlocks which we use to guard atomic accesses. A spinlock is
 // chosen based on a hash of the address of the atomic object, which helps to
@@ -75,7 +75,10 @@ fn lock(addr: usize) -> LockGuard {
 #[inline]
 fn lock(addr: usize) -> LockGuard {
     let lock = lock_for_addr(addr);
-    while lock.compare_exchange_weak(false, true, Ordering::Acquire, Ordering::Relaxed).is_err() {}
+    while lock
+        .compare_exchange_weak(false, true, Ordering::Acquire, Ordering::Relaxed)
+        .is_err()
+    {}
     LockGuard(lock)
 }
 
@@ -111,8 +114,10 @@ pub unsafe fn atomic_compare_exchange<T>(dst: *mut T, current: T, new: T) -> Res
     let result = ptr::read(dst);
     // compare_exchange compares with memcmp instead of Eq
     let a = slice::from_raw_parts(&result as *const _ as *const u8, mem::size_of_val(&result));
-    let b = slice::from_raw_parts(&current as *const _ as *const u8,
-                                  mem::size_of_val(&current));
+    let b = slice::from_raw_parts(
+        &current as *const _ as *const u8,
+        mem::size_of_val(&current),
+    );
     if a == b {
         ptr::write(dst, new);
         Ok(result)
@@ -123,7 +128,8 @@ pub unsafe fn atomic_compare_exchange<T>(dst: *mut T, current: T, new: T) -> Res
 
 #[inline]
 pub unsafe fn atomic_add<T: Copy>(dst: *mut T, val: T) -> T
-    where Wrapping<T>: ops::Add<Output = Wrapping<T>>
+where
+    Wrapping<T>: ops::Add<Output = Wrapping<T>>,
 {
     let _l = lock(dst as usize);
     let result = ptr::read(dst);
@@ -133,7 +139,8 @@ pub unsafe fn atomic_add<T: Copy>(dst: *mut T, val: T) -> T
 
 #[inline]
 pub unsafe fn atomic_sub<T: Copy>(dst: *mut T, val: T) -> T
-    where Wrapping<T>: ops::Sub<Output = Wrapping<T>>
+where
+    Wrapping<T>: ops::Sub<Output = Wrapping<T>>,
 {
     let _l = lock(dst as usize);
     let result = ptr::read(dst);
