@@ -24,36 +24,18 @@ const SIZEOF_USIZE: usize = mem::size_of::<usize>();
 #[cfg(not(feature = "nightly"))]
 const ALIGNOF_USIZE: usize = mem::align_of::<usize>();
 
+#[cfg(feature = "nightly")]
+#[inline]
+pub const fn atomic_is_lock_free<T>() -> bool {
+    let size = mem::size_of::<T>();
+    1 == size.count_ones() && 8 >= size && mem::align_of::<T>() >= size
+}
+
+#[cfg(not(feature = "nightly"))]
 #[inline]
 pub fn atomic_is_lock_free<T>() -> bool {
-    match mem::size_of::<T>() {
-        #[cfg(all(feature = "nightly", target_has_atomic = "8"))]
-        1 if mem::align_of::<T>() >= 1 =>
-        {
-            true
-        }
-        #[cfg(all(feature = "nightly", target_has_atomic = "16"))]
-        2 if mem::align_of::<T>() >= 2 =>
-        {
-            true
-        }
-        #[cfg(all(feature = "nightly", target_has_atomic = "32"))]
-        4 if mem::align_of::<T>() >= 4 =>
-        {
-            true
-        }
-        #[cfg(all(feature = "nightly", target_has_atomic = "64"))]
-        8 if mem::align_of::<T>() >= 8 =>
-        {
-            true
-        }
-        #[cfg(not(feature = "nightly"))]
-        SIZEOF_USIZE if mem::align_of::<T>() >= ALIGNOF_USIZE =>
-        {
-            true
-        }
-        _ => false,
-    }
+    let size = mem::size_of::<T>();
+    1 == size.count_ones() && SIZEOF_USIZE >= size && mem::align_of::<T>() >= ALIGNOF_USIZE
 }
 
 #[inline]
