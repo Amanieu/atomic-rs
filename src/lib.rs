@@ -51,6 +51,7 @@ mod ops;
 
 /// A generic atomic wrapper type which allows an object to be safely shared
 /// between threads.
+#[repr(transparent)]
 pub struct Atomic<T: Copy> {
     v: UnsafeCell<T>,
 }
