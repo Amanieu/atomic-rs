@@ -28,7 +28,8 @@ const ALIGNOF_USIZE: usize = mem::align_of::<usize>();
 #[inline]
 pub const fn atomic_is_lock_free<T>() -> bool {
     let size = mem::size_of::<T>();
-    1 == size.count_ones() && 8 >= size && mem::align_of::<T>() >= size
+    // FIXME: switch to … && … && … once that operator is supported in const functions
+    (1 == size.count_ones()) & (8 >= size) & (mem::align_of::<T>() >= size)
 }
 
 #[cfg(not(feature = "nightly"))]
