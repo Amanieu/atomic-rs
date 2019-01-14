@@ -33,7 +33,7 @@
 #![warn(missing_docs)]
 #![no_std]
 #![cfg_attr(
-    feature = "nightly", feature(const_fn, const_int_ops, const_let, cfg_target_has_atomic, integer_atomics, atomic_min_max)
+    feature = "nightly", feature(const_fn, cfg_target_has_atomic, integer_atomics, atomic_min_max)
 )]
 
 #[cfg(test)]
