@@ -11,7 +11,7 @@ use core::num::Wrapping;
 use core::ops;
 use core::ptr;
 use core::slice;
-use core::sync::atomic::{self, AtomicUsize, Ordering, ATOMIC_USIZE_INIT};
+use core::sync::atomic::{self, AtomicUsize, Ordering};
 
 // We use an AtomicUsize instead of an AtomicBool because it performs better
 // on architectures that don't have byte-sized atomics.
@@ -63,7 +63,7 @@ macro_rules! array {
 
     [$e:expr; $n:tt] => { array!(@accum ($n, $e) -> ()) };
 }
-static SPINLOCKS: [SpinLock; 64] = array![SpinLock(ATOMIC_USIZE_INIT); 64];
+static SPINLOCKS: [SpinLock; 64] = array![SpinLock(AtomicUsize::new(0)); 64];
 
 // Spinlock pointer hashing function from compiler-rt
 #[inline]
