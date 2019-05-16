@@ -114,6 +114,24 @@ impl<T: Copy> Atomic<T> {
         ops::atomic_is_lock_free::<T>()
     }
 
+    /// Returns a mutable reference to the underlying type.
+    ///
+    /// This is safe because the mutable reference guarantees that no other threads are
+    /// concurrently accessing the atomic data.
+    #[inline]
+    pub fn get_mut(&mut self) -> &mut T {
+        unsafe { &mut *self.v.get() }
+    }
+
+    /// Consumes the atomic and returns the contained value.
+    ///
+    /// This is safe because passing `self` by value guarantees that no other threads are
+    /// concurrently accessing the atomic data.
+    #[inline]
+    pub fn into_inner(self) -> T {
+        self.v.into_inner()
+    }
+
     /// Loads a value from the `Atomic`.
     ///
     /// `load` takes an `Ordering` argument which describes the memory ordering
