@@ -114,7 +114,7 @@ impl<T: Copy> Atomic<T> {
         ops::atomic_is_lock_free::<T>()
     }
 
-    /// Returns a mutable reference to the underlying integer.
+    /// Returns a mutable reference to the underlying type.
     ///
     /// This is safe because the mutable reference guarantees that no other threads are
     /// concurrently accessing the atomic data.
