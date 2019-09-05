@@ -11,3 +11,4 @@ keywords = ["atomic", "no_std"]
 
 [features]
 nightly = []
+std = []
