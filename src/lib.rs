@@ -31,19 +31,14 @@
 //! are often used for lazy global initialization.
 
 #![warn(missing_docs)]
-#![cfg_attr(
-    not(feature = "std"), no_std
-)]
+#![no_std]
 #![cfg_attr(
     feature = "nightly", feature(const_fn, cfg_target_has_atomic, atomic_min_max)
 )]
 
-#[cfg(all(test, not(feature = "std")))]
+#[cfg(any(test, feature = "std"))]
 #[macro_use]
 extern crate std;
-
-#[cfg(feature = "std")]
-use std as core;
 
 // Re-export some useful definitions from libcore
 pub use core::sync::atomic::{fence, Ordering};
@@ -72,7 +67,6 @@ unsafe impl<T: Copy + Send> Sync for Atomic<T> {}
 // atomicity is emulated using a spinlock, it is still correct because the
 // `Atomic` API does not allow doing any panic-inducing operation after writing
 // to the target object.
-//
 #[cfg(feature = "std")]
 impl<T: Copy + RefUnwindSafe> RefUnwindSafe for Atomic<T> {}
 
