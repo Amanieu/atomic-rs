@@ -5,7 +5,7 @@ rust:
 - nightly
 - beta
 - stable
-- 1.26.0
+- 1.31.0
 
 before_script:
 - |
@@ -15,14 +15,14 @@ before_script:
 script:
 - travis-cargo build
 - travis-cargo test
-- travis-cargo doc
+- travis-cargo --only stable doc
 
 after_success:
-- travis-cargo --only nightly doc-upload
+- travis-cargo --only stable doc-upload
 
 env:
   global:
-  - TRAVIS_CARGO_NIGHTLY_FEATURE=nightly
+  - TRAVIS_CARGO_NIGHTLY_FEATURE=
 
 notifications:
   email: false
