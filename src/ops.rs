@@ -5,6 +5,7 @@
 // http://opensource.org/licenses/MIT>, at your option. This file may not be
 // copied, modified, or distributed except according to those terms.
 
+#[cfg(feature = "fallback")]
 use crate::fallback;
 use core::cmp;
 use core::mem;
@@ -45,7 +46,10 @@ macro_rules! match_atomic {
 
                 $impl
             }
+            #[cfg(feature = "fallback")]
             _ => $fallback_impl,
+            #[cfg(not(feature = "fallback"))]
+            _ => panic!("Atomic operations for type `{}` are not available as the `fallback` feature of the `atomic` crate is disabled.", core::any::type_name::<$type>()),
         }
     };
 }
@@ -83,7 +87,10 @@ macro_rules! match_signed_atomic {
 
                 $impl
             }
+            #[cfg(feature = "fallback")]
             _ => $fallback_impl,
+            #[cfg(not(feature = "fallback"))]
+            _ => panic!("Atomic operations for type `{}` are not available as the `fallback` feature of the `atomic` crate is disabled.", core::any::type_name::<$type>()),
         }
     };
 }
