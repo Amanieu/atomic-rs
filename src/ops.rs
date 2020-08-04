@@ -12,9 +12,6 @@ use core::ops;
 use core::sync::atomic::Ordering;
 use fallback;
 
-const SIZEOF_USIZE: usize = mem::size_of::<usize>();
-const ALIGNOF_USIZE: usize = mem::align_of::<usize>();
-
 macro_rules! match_atomic {
     ($type:ident, $atomic:ident, $impl:expr, $fallback_impl:expr) => {
         match mem::size_of::<$type>() {
@@ -42,19 +39,10 @@ macro_rules! match_atomic {
 
                 $impl
             }
-            #[cfg(has_atomic_usize)]
-            SIZEOF_USIZE if mem::align_of::<$type>() >= ALIGNOF_USIZE => {
-                type $atomic = core::sync::atomic::AtomicUsize;
-
-                $impl
-            }
             _ => $fallback_impl,
         }
     };
 }
-
-const SIZEOF_ISIZE: usize = mem::size_of::<isize>();
-const ALIGNOF_ISIZE: usize = mem::align_of::<isize>();
 
 macro_rules! match_signed_atomic {
     ($type:ident, $atomic:ident, $impl:expr, $fallback_impl:expr) => {
@@ -83,12 +71,6 @@ macro_rules! match_signed_atomic {
 
                 $impl
             }
-            #[cfg(has_atomic_isize)]
-            SIZEOF_ISIZE if mem::align_of::<$type>() >= ALIGNOF_ISIZE => {
-                type $atomic = core::sync::atomic::AtomicIsize;
-
-                $impl
-            }
             _ => $fallback_impl,
         }
     };
@@ -103,7 +85,6 @@ pub const fn atomic_is_lock_free<T>() -> bool {
         | (cfg!(has_atomic_u16) & (size == 2) & (align >= 2))
         | (cfg!(has_atomic_u32) & (size == 4) & (align >= 4))
         | (cfg!(has_atomic_u64) & (size == 8) & (align >= 8))
-        | (cfg!(has_atomic_usize) & (size == SIZEOF_USIZE) & (align >= ALIGNOF_USIZE))
 }
 
 #[inline]
