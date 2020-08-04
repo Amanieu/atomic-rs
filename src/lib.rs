@@ -31,6 +31,7 @@
 //! are often used for lazy global initialization.
 
 #![warn(missing_docs)]
+#![warn(rust_2018_idioms)]
 #![no_std]
 
 #[cfg(any(test, feature = "std"))]
@@ -75,7 +76,7 @@ impl<T: Copy + Default> Default for Atomic<T> {
 }
 
 impl<T: Copy + fmt::Debug> fmt::Debug for Atomic<T> {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_tuple("Atomic")
             .field(&self.load(Ordering::SeqCst))
             .finish()
@@ -378,9 +379,8 @@ atomic_ops_unsigned! { u8 u16 u32 u64 usize u128 }
 
 #[cfg(test)]
 mod tests {
+    use super::{Atomic, Ordering::*};
     use core::mem;
-    use Atomic;
-    use Ordering::*;
 
     #[derive(Copy, Clone, Eq, PartialEq, Debug, Default)]
     struct Foo(u8, u8);

@@ -5,12 +5,12 @@
 // http://opensource.org/licenses/MIT>, at your option. This file may not be
 // copied, modified, or distributed except according to those terms.
 
+use crate::fallback;
 use core::cmp;
 use core::mem;
 use core::num::Wrapping;
 use core::ops;
 use core::sync::atomic::Ordering;
-use fallback;
 
 macro_rules! match_atomic {
     ($type:ident, $atomic:ident, $impl:expr, $fallback_impl:expr) => {
