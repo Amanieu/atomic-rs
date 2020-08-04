@@ -32,9 +32,6 @@
 
 #![warn(missing_docs)]
 #![no_std]
-#![cfg_attr(
-    feature = "nightly", feature(const_fn, cfg_target_has_atomic, atomic_min_max)
-)]
 
 #[cfg(any(test, feature = "std"))]
 #[macro_use]
@@ -54,7 +51,7 @@ mod ops;
 
 /// A generic atomic wrapper type which allows an object to be safely shared
 /// between threads.
-pub struct Atomic<T: Copy> {
+pub struct Atomic<T> {
     v: UnsafeCell<T>,
 }
 
@@ -85,47 +82,27 @@ impl<T: Copy + fmt::Debug> fmt::Debug for Atomic<T> {
     }
 }
 
-impl<T: Copy> Atomic<T> {
+impl<T> Atomic<T> {
     /// Creates a new `Atomic`.
     #[inline]
-    #[cfg(feature = "nightly")]
     pub const fn new(v: T) -> Atomic<T> {
         Atomic {
             v: UnsafeCell::new(v),
         }
     }
 
-    /// Creates a new `Atomic`.
-    #[inline]
-    #[cfg(not(feature = "nightly"))]
-    pub fn new(v: T) -> Atomic<T> {
-        Atomic {
-            v: UnsafeCell::new(v),
-        }
-    }
-
     /// Checks if `Atomic` objects of this type are lock-free.
     ///
     /// If an `Atomic` is not lock-free then it may be implemented using locks
     /// internally, which makes it unsuitable for some situations (such as
     /// communicating with a signal handler).
     #[inline]
-    #[cfg(feature = "nightly")]
     pub const fn is_lock_free() -> bool {
         ops::atomic_is_lock_free::<T>()
     }
+}
 
-    /// Checks if `Atomic` objects of this type are lock-free.
-    ///
-    /// If an `Atomic` is not lock-free then it may be implemented using locks
-    /// internally, which makes it unsuitable for some situations (such as
-    /// communicating with a signal handler).
-    #[inline]
-    #[cfg(not(feature = "nightly"))]
-    pub fn is_lock_free() -> bool {
-        ops::atomic_is_lock_free::<T>()
-    }
-
+impl<T: Copy> Atomic<T> {
     /// Returns a mutable reference to the underlying type.
     ///
     /// This is safe because the mutable reference guarantees that no other threads are
@@ -396,8 +373,8 @@ macro_rules! atomic_ops_unsigned {
         )*
     );
 }
-atomic_ops_signed!{ i8 i16 i32 i64 isize i128 }
-atomic_ops_unsigned!{ u8 u16 u32 u64 usize u128 }
+atomic_ops_signed! { i8 i16 i32 i64 isize i128 }
+atomic_ops_unsigned! { u8 u16 u32 u64 usize u128 }
 
 #[cfg(test)]
 mod tests {
@@ -415,7 +392,7 @@ mod tests {
     #[test]
     fn atomic_bool() {
         let a = Atomic::new(false);
-        assert_eq!(Atomic::<bool>::is_lock_free(), cfg!(feature = "nightly"));
+        assert_eq!(Atomic::<bool>::is_lock_free(), cfg!(has_atomic_u8),);
         assert_eq!(format!("{:?}", a), "Atomic(false)");
         assert_eq!(a.load(SeqCst), false);
         a.store(true, SeqCst);
@@ -431,13 +408,7 @@ mod tests {
     #[test]
     fn atomic_i8() {
         let a = Atomic::new(0i8);
-        assert_eq!(
-            Atomic::<i8>::is_lock_free(),
-            cfg!(any(
-                target_pointer_width = "8",
-                all(feature = "nightly", target_has_atomic = "8")
-            ))
-        );
+        assert_eq!(Atomic::<i8>::is_lock_free(), cfg!(has_atomic_u8));
         assert_eq!(format!("{:?}", a), "Atomic(0)");
         assert_eq!(a.load(SeqCst), 0);
         a.store(1, SeqCst);
@@ -458,13 +429,7 @@ mod tests {
     #[test]
     fn atomic_i16() {
         let a = Atomic::new(0i16);
-        assert_eq!(
-            Atomic::<i16>::is_lock_free(),
-            cfg!(any(
-                target_pointer_width = "16",
-                all(feature = "nightly", target_has_atomic = "16")
-            ))
-        );
+        assert_eq!(Atomic::<i16>::is_lock_free(), cfg!(has_atomic_u16));
         assert_eq!(format!("{:?}", a), "Atomic(0)");
         assert_eq!(a.load(SeqCst), 0);
         a.store(1, SeqCst);
@@ -484,13 +449,7 @@ mod tests {
     #[test]
     fn atomic_i32() {
         let a = Atomic::new(0i32);
-        assert_eq!(
-            Atomic::<i32>::is_lock_free(),
-            cfg!(any(
-                target_pointer_width = "32",
-                all(feature = "nightly", target_has_atomic = "32")
-            ))
-        );
+        assert_eq!(Atomic::<i32>::is_lock_free(), cfg!(has_atomic_u32));
         assert_eq!(format!("{:?}", a), "Atomic(0)");
         assert_eq!(a.load(SeqCst), 0);
         a.store(1, SeqCst);
@@ -512,10 +471,7 @@ mod tests {
         let a = Atomic::new(0i64);
         assert_eq!(
             Atomic::<i64>::is_lock_free(),
-            cfg!(any(
-                target_pointer_width = "64",
-                all(feature = "nightly", target_has_atomic = "64")
-            )) && mem::align_of::<i64>() == 8
+            cfg!(has_atomic_u64) && mem::align_of::<i64>() == 8
         );
         assert_eq!(format!("{:?}", a), "Atomic(0)");
         assert_eq!(a.load(SeqCst), 0);
@@ -536,13 +492,7 @@ mod tests {
     #[test]
     fn atomic_i128() {
         let a = Atomic::new(0i128);
-        assert_eq!(
-            Atomic::<i128>::is_lock_free(),
-            cfg!(any(
-                target_pointer_width = "128",
-                all(feature = "nightly", target_has_atomic = "128")
-            ))
-        );
+        assert_eq!(Atomic::<i128>::is_lock_free(), cfg!(has_atomic_u128));
         assert_eq!(format!("{:?}", a), "Atomic(0)");
         assert_eq!(a.load(SeqCst), 0);
         a.store(1, SeqCst);
@@ -562,7 +512,6 @@ mod tests {
     #[test]
     fn atomic_isize() {
         let a = Atomic::new(0isize);
-        assert!(Atomic::<isize>::is_lock_free());
         assert_eq!(format!("{:?}", a), "Atomic(0)");
         assert_eq!(a.load(SeqCst), 0);
         a.store(1, SeqCst);
@@ -582,13 +531,7 @@ mod tests {
     #[test]
     fn atomic_u8() {
         let a = Atomic::new(0u8);
-        assert_eq!(
-            Atomic::<u8>::is_lock_free(),
-            cfg!(any(
-                target_pointer_width = "8",
-                all(feature = "nightly", target_has_atomic = "8")
-            ))
-        );
+        assert_eq!(Atomic::<u8>::is_lock_free(), cfg!(has_atomic_u8));
         assert_eq!(format!("{:?}", a), "Atomic(0)");
         assert_eq!(a.load(SeqCst), 0);
         a.store(1, SeqCst);
@@ -608,13 +551,7 @@ mod tests {
     #[test]
     fn atomic_u16() {
         let a = Atomic::new(0u16);
-        assert_eq!(
-            Atomic::<u16>::is_lock_free(),
-            cfg!(any(
-                target_pointer_width = "16",
-                all(feature = "nightly", target_has_atomic = "16")
-            ))
-        );
+        assert_eq!(Atomic::<u16>::is_lock_free(), cfg!(has_atomic_u16));
         assert_eq!(format!("{:?}", a), "Atomic(0)");
         assert_eq!(a.load(SeqCst), 0);
         a.store(1, SeqCst);
@@ -634,13 +571,7 @@ mod tests {
     #[test]
     fn atomic_u32() {
         let a = Atomic::new(0u32);
-        assert_eq!(
-            Atomic::<u32>::is_lock_free(),
-            cfg!(any(
-                target_pointer_width = "32",
-                all(feature = "nightly", target_has_atomic = "32")
-            ))
-        );
+        assert_eq!(Atomic::<u32>::is_lock_free(), cfg!(has_atomic_u32));
         assert_eq!(format!("{:?}", a), "Atomic(0)");
         assert_eq!(a.load(SeqCst), 0);
         a.store(1, SeqCst);
@@ -662,10 +593,7 @@ mod tests {
         let a = Atomic::new(0u64);
         assert_eq!(
             Atomic::<u64>::is_lock_free(),
-            cfg!(any(
-                target_pointer_width = "64",
-                all(feature = "nightly", target_has_atomic = "64")
-            )) && mem::align_of::<u64>() == 8
+            cfg!(has_atomic_u64) && mem::align_of::<u64>() == 8
         );
         assert_eq!(format!("{:?}", a), "Atomic(0)");
         assert_eq!(a.load(SeqCst), 0);
@@ -686,13 +614,7 @@ mod tests {
     #[test]
     fn atomic_u128() {
         let a = Atomic::new(0u128);
-        assert_eq!(
-            Atomic::<u128>::is_lock_free(),
-            cfg!(any(
-                target_pointer_width = "128",
-                all(feature = "nightly", target_has_atomic = "128")
-            ))
-        );
+        assert_eq!(Atomic::<u128>::is_lock_free(), cfg!(has_atomic_u128));
         assert_eq!(format!("{:?}", a), "Atomic(0)");
         assert_eq!(a.load(SeqCst), 0);
         a.store(1, SeqCst);
@@ -712,7 +634,6 @@ mod tests {
     #[test]
     fn atomic_usize() {
         let a = Atomic::new(0usize);
-        assert!(Atomic::<usize>::is_lock_free());
         assert_eq!(format!("{:?}", a), "Atomic(0)");
         assert_eq!(a.load(SeqCst), 0);
         a.store(1, SeqCst);
@@ -770,10 +691,7 @@ mod tests {
     #[test]
     fn atomic_quxx() {
         let a = Atomic::default();
-        assert_eq!(
-            Atomic::<Quux>::is_lock_free(),
-            cfg!(any(feature = "nightly", target_pointer_width = "32"))
-        );
+        assert_eq!(Atomic::<Quux>::is_lock_free(), cfg!(has_atomic_u32));
         assert_eq!(format!("{:?}", a), "Atomic(Quux(0))");
         assert_eq!(a.load(SeqCst), Quux(0));
         a.store(Quux(1), SeqCst);

@@ -10,5 +10,7 @@ readme = "README.md"
 keywords = ["atomic", "no_std"]
 
 [features]
-nightly = []
 std = []
+
+[build-dependencies]
+autocfg = "1"
