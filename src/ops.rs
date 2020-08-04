@@ -39,6 +39,12 @@ macro_rules! match_atomic {
 
                 $impl
             }
+            #[cfg(has_atomic_u128)]
+            16 if mem::align_of::<$type>() >= 16 => {
+                type $atomic = core::sync::atomic::AtomicU128;
+
+                $impl
+            }
             _ => $fallback_impl,
         }
     };
@@ -71,6 +77,12 @@ macro_rules! match_signed_atomic {
 
                 $impl
             }
+            #[cfg(has_atomic_u128)]
+            16 if mem::align_of::<$type>() >= 16 => {
+                type $atomic = core::sync::atomic::AtomicI128;
+
+                $impl
+            }
             _ => $fallback_impl,
         }
     };
@@ -85,6 +97,7 @@ pub const fn atomic_is_lock_free<T>() -> bool {
         | (cfg!(has_atomic_u16) & (size == 2) & (align >= 2))
         | (cfg!(has_atomic_u32) & (size == 4) & (align >= 4))
         | (cfg!(has_atomic_u64) & (size == 8) & (align >= 8))
+        | (cfg!(has_atomic_u128) & (size == 16) & (align >= 16))
 }
 
 #[inline]
