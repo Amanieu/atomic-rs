@@ -23,10 +23,5 @@ fn main() {
                 &format!("has_atomic_i{}", size),
             );
         }
-
-        ac.emit_expression_cfg(
-            &format!("{}::sync::atomic::AtomicUsize::fetch_min", root),
-            "has_fetch_min",
-        );
     }
 }

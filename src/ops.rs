@@ -96,13 +96,14 @@ macro_rules! match_signed_atomic {
 
 #[inline]
 pub const fn atomic_is_lock_free<T>() -> bool {
-    (cfg!(has_atomic_u8) & (mem::size_of::<T>() == 1) & (mem::align_of::<T>() >= 1))
-        | (cfg!(has_atomic_u16) & (mem::size_of::<T>() == 2) & (mem::align_of::<T>() >= 2))
-        | (cfg!(has_atomic_u32) & (mem::size_of::<T>() == 4) & (mem::align_of::<T>() >= 4))
-        | (cfg!(has_atomic_u64) & (mem::size_of::<T>() == 8) & (mem::align_of::<T>() >= 8))
-        | (cfg!(has_atomic_usize)
-            & (mem::size_of::<T>() == mem::size_of::<usize>())
-            & (mem::align_of::<T>() >= mem::align_of::<usize>()))
+    let size = mem::size_of::<T>();
+    let align = mem::align_of::<T>();
+
+    (cfg!(has_atomic_u8) & (size == 1) & (align >= 1))
+        | (cfg!(has_atomic_u16) & (size == 2) & (align >= 2))
+        | (cfg!(has_atomic_u32) & (size == 4) & (align >= 4))
+        | (cfg!(has_atomic_u64) & (size == 8) & (align >= 8))
+        | (cfg!(has_atomic_usize) & (size == SIZEOF_USIZE) & (align >= ALIGNOF_USIZE))
 }
 
 #[inline]
@@ -255,52 +256,40 @@ pub unsafe fn atomic_xor<T: Copy + ops::BitXor<Output = T>>(
 
 #[inline]
 pub unsafe fn atomic_min<T: Copy + cmp::Ord>(dst: *mut T, val: T, order: Ordering) -> T {
-    #[cfg(has_fetch_min)]
-    return match_signed_atomic!(
+    match_signed_atomic!(
         T,
         A,
         mem::transmute_copy(&(*(dst as *const A)).fetch_min(mem::transmute_copy(&val), order),),
         fallback::atomic_min(dst, val)
-    );
-    #[cfg(not(has_fetch_min))]
-    return fallback::atomic_min(dst, val);
+    )
 }
 
 #[inline]
 pub unsafe fn atomic_max<T: Copy + cmp::Ord>(dst: *mut T, val: T, order: Ordering) -> T {
-    #[cfg(has_fetch_min)]
-    return match_signed_atomic!(
+    match_signed_atomic!(
         T,
         A,
         mem::transmute_copy(&(*(dst as *const A)).fetch_max(mem::transmute_copy(&val), order),),
         fallback::atomic_max(dst, val)
-    );
-    #[cfg(not(has_fetch_min))]
-    return fallback::atomic_max(dst, val);
+    )
 }
 
 #[inline]
 pub unsafe fn atomic_umin<T: Copy + cmp::Ord>(dst: *mut T, val: T, order: Ordering) -> T {
-    #[cfg(has_fetch_min)]
-    return match_atomic!(
+    match_atomic!(
         T,
         A,
         mem::transmute_copy(&(*(dst as *const A)).fetch_min(mem::transmute_copy(&val), order),),
         fallback::atomic_min(dst, val)
-    );
-    #[cfg(not(has_fetch_min))]
-    return fallback::atomic_min(dst, val);
+    )
 }
 
 #[inline]
 pub unsafe fn atomic_umax<T: Copy + cmp::Ord>(dst: *mut T, val: T, order: Ordering) -> T {
-    #[cfg(has_fetch_min)]
-    return match_atomic!(
+    match_atomic!(
         T,
         A,
         mem::transmute_copy(&(*(dst as *const A)).fetch_max(mem::transmute_copy(&val), order),),
         fallback::atomic_max(dst, val)
-    );
-    #[cfg(not(has_fetch_min))]
-    fallback::atomic_max(dst, val)
+    )
 }
