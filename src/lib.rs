@@ -47,6 +47,7 @@ use core::fmt;
 #[cfg(feature = "std")]
 use std::panic::RefUnwindSafe;
 
+#[cfg(feature = "fallback")]
 mod fallback;
 mod ops;
 

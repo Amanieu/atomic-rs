@@ -11,7 +11,9 @@ readme = "README.md"
 keywords = ["atomic", "no_std"]
 
 [features]
+default = ["fallback"]
 std = []
+fallback = []
 
 [build-dependencies]
 autocfg = "1"
