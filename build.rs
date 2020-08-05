@@ -1,5 +1,3 @@
-extern crate autocfg;
-
 fn main() {
     let ac = autocfg::new();
 
