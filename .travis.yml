@@ -5,24 +5,14 @@ rust:
 - nightly
 - beta
 - stable
-- 1.26.0
-
-before_script:
-- |
-  pip install 'travis-cargo<0.2' --user &&
-  export PATH=$HOME/.local/bin:$PATH
+- 1.45.0
 
 script:
-- travis-cargo build
-- travis-cargo test
-- travis-cargo doc
-
-after_success:
-- travis-cargo --only nightly doc-upload
-
-env:
-  global:
-  - TRAVIS_CARGO_NIGHTLY_FEATURE=nightly
+- cargo build
+- cargo test
+- cargo doc
+- if [ $TRAVIS_RUST_VERSION = nightly ]; then rustup target add aarch64-unknown-none; fi
+- if [ $TRAVIS_RUST_VERSION = nightly ]; then RUSTFLAGS="-Zcrate-attr=feature(integer_atomics)" cargo check --target=aarch64-unknown-none; fi
 
 notifications:
   email: false
