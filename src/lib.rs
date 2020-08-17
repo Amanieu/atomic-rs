@@ -27,8 +27,8 @@
 //! atomically-reference-counted shared pointer).
 //!
 //! Most atomic types may be stored in static variables, initialized using
-//! the `const fn` constructors (only available on nightly). Atomic statics
-//! are often used for lazy global initialization.
+//! the `const fn` constructors. Atomic statics are often used for lazy global
+//! initialization.
 
 #![warn(missing_docs)]
 #![warn(rust_2018_idioms)]

@@ -26,13 +26,6 @@ and this to your crate root:
 extern crate atomic;
 ```
 
-To enable nightly-only features, add this to your `Cargo.toml` instead:
-
-```toml
-[dependencies]
-atomic = {version = "0.5", features = ["nightly"]}
-```
-
 ## License
 
 Licensed under either of
