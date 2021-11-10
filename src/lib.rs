@@ -171,7 +171,7 @@ impl<T: Copy> Atomic<T> {
     /// `compare_exchange` takes two `Ordering` arguments to describe the memory
     /// ordering of this operation. The first describes the required ordering if
     /// the operation succeeds while the second describes the required ordering
-    /// when the operation fails. The failure ordering can't be `Acquire` or
+    /// when the operation fails. The failure ordering can't be `Release` or
     /// `AcqRel` and must be equivalent or weaker than the success ordering.
     #[inline]
     pub fn compare_exchange(
@@ -195,7 +195,7 @@ impl<T: Copy> Atomic<T> {
     /// `compare_exchange` takes two `Ordering` arguments to describe the memory
     /// ordering of this operation. The first describes the required ordering if
     /// the operation succeeds while the second describes the required ordering
-    /// when the operation fails. The failure ordering can't be `Acquire` or
+    /// when the operation fails. The failure ordering can't be `Release` or
     /// `AcqRel` and must be equivalent or weaker than the success ordering.
     /// success ordering.
     #[inline]
