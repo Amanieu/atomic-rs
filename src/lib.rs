@@ -38,6 +38,7 @@
 #[macro_use]
 extern crate std;
 
+use core::mem::MaybeUninit;
 // Re-export some useful definitions from libcore
 pub use core::sync::atomic::{fence, Ordering};
 
@@ -55,7 +56,8 @@ mod ops;
 /// between threads.
 #[repr(transparent)]
 pub struct Atomic<T> {
-    v: UnsafeCell<T>,
+    // The MaybeUninit is here to work around rust-lang/rust#87341.
+    v: UnsafeCell<MaybeUninit<T>>,
 }
 
 // Atomic<T> is only Sync if T is Send
@@ -90,7 +92,7 @@ impl<T> Atomic<T> {
     #[inline]
     pub const fn new(v: T) -> Atomic<T> {
         Atomic {
-            v: UnsafeCell::new(v),
+            v: UnsafeCell::new(MaybeUninit::new(v)),
         }
     }
 
@@ -106,13 +108,18 @@ impl<T> Atomic<T> {
 }
 
 impl<T: Copy> Atomic<T> {
+    #[inline]
+    fn inner_ptr(&self) -> *mut T {
+        self.v.get() as *mut T
+    }
+
     /// Returns a mutable reference to the underlying type.
     ///
     /// This is safe because the mutable reference guarantees that no other threads are
     /// concurrently accessing the atomic data.
     #[inline]
     pub fn get_mut(&mut self) -> &mut T {
-        unsafe { &mut *self.v.get() }
+        unsafe { &mut *self.inner_ptr() }
     }
 
     /// Consumes the atomic and returns the contained value.
@@ -121,7 +128,7 @@ impl<T: Copy> Atomic<T> {
     /// concurrently accessing the atomic data.
     #[inline]
     pub fn into_inner(self) -> T {
-        self.v.into_inner()
+        unsafe { self.v.into_inner().assume_init() }
     }
 
     /// Loads a value from the `Atomic`.
@@ -134,7 +141,7 @@ impl<T: Copy> Atomic<T> {
     /// Panics if `order` is `Release` or `AcqRel`.
     #[inline]
     pub fn load(&self, order: Ordering) -> T {
-        unsafe { ops::atomic_load(self.v.get(), order) }
+        unsafe { ops::atomic_load(self.inner_ptr(), order) }
     }
 
     /// Stores a value into the `Atomic`.
@@ -148,7 +155,7 @@ impl<T: Copy> Atomic<T> {
     #[inline]
     pub fn store(&self, val: T, order: Ordering) {
         unsafe {
-            ops::atomic_store(self.v.get(), val, order);
+            ops::atomic_store(self.inner_ptr(), val, order);
         }
     }
 
@@ -158,7 +165,7 @@ impl<T: Copy> Atomic<T> {
     /// of this operation.
     #[inline]
     pub fn swap(&self, val: T, order: Ordering) -> T {
-        unsafe { ops::atomic_swap(self.v.get(), val, order) }
+        unsafe { ops::atomic_swap(self.inner_ptr(), val, order) }
     }
 
     /// Stores a value into the `Atomic` if the current value is the same as the
@@ -181,7 +188,7 @@ impl<T: Copy> Atomic<T> {
         success: Ordering,
         failure: Ordering,
     ) -> Result<T, T> {
-        unsafe { ops::atomic_compare_exchange(self.v.get(), current, new, success, failure) }
+        unsafe { ops::atomic_compare_exchange(self.inner_ptr(), current, new, success, failure) }
     }
 
     /// Stores a value into the `Atomic` if the current value is the same as the
@@ -206,7 +213,9 @@ impl<T: Copy> Atomic<T> {
         success: Ordering,
         failure: Ordering,
     ) -> Result<T, T> {
-        unsafe { ops::atomic_compare_exchange_weak(self.v.get(), current, new, success, failure) }
+        unsafe {
+            ops::atomic_compare_exchange_weak(self.inner_ptr(), current, new, success, failure)
+        }
     }
 
     /// Fetches the value, and applies a function to it that returns an optional
@@ -275,7 +284,7 @@ impl Atomic<bool> {
     /// Returns the previous value.
     #[inline]
     pub fn fetch_and(&self, val: bool, order: Ordering) -> bool {
-        unsafe { ops::atomic_and(self.v.get(), val, order) }
+        unsafe { ops::atomic_and(self.inner_ptr(), val, order) }
     }
 
     /// Logical "or" with a boolean value.
@@ -286,7 +295,7 @@ impl Atomic<bool> {
     /// Returns the previous value.
     #[inline]
     pub fn fetch_or(&self, val: bool, order: Ordering) -> bool {
-        unsafe { ops::atomic_or(self.v.get(), val, order) }
+        unsafe { ops::atomic_or(self.inner_ptr(), val, order) }
     }
 
     /// Logical "xor" with a boolean value.
@@ -297,7 +306,7 @@ impl Atomic<bool> {
     /// Returns the previous value.
     #[inline]
     pub fn fetch_xor(&self, val: bool, order: Ordering) -> bool {
-        unsafe { ops::atomic_xor(self.v.get(), val, order) }
+        unsafe { ops::atomic_xor(self.inner_ptr(), val, order) }
     }
 }
 
@@ -307,31 +316,31 @@ macro_rules! atomic_ops_common {
             /// Add to the current value, returning the previous value.
             #[inline]
             pub fn fetch_add(&self, val: $t, order: Ordering) -> $t {
-                unsafe { ops::atomic_add(self.v.get(), val, order) }
+                unsafe { ops::atomic_add(self.inner_ptr(), val, order) }
             }
 
             /// Subtract from the current value, returning the previous value.
             #[inline]
             pub fn fetch_sub(&self, val: $t, order: Ordering) -> $t {
-                unsafe { ops::atomic_sub(self.v.get(), val, order) }
+                unsafe { ops::atomic_sub(self.inner_ptr(), val, order) }
             }
 
             /// Bitwise and with the current value, returning the previous value.
             #[inline]
             pub fn fetch_and(&self, val: $t, order: Ordering) -> $t {
-                unsafe { ops::atomic_and(self.v.get(), val, order) }
+                unsafe { ops::atomic_and(self.inner_ptr(), val, order) }
             }
 
             /// Bitwise or with the current value, returning the previous value.
             #[inline]
             pub fn fetch_or(&self, val: $t, order: Ordering) -> $t {
-                unsafe { ops::atomic_or(self.v.get(), val, order) }
+                unsafe { ops::atomic_or(self.inner_ptr(), val, order) }
             }
 
             /// Bitwise xor with the current value, returning the previous value.
             #[inline]
             pub fn fetch_xor(&self, val: $t, order: Ordering) -> $t {
-                unsafe { ops::atomic_xor(self.v.get(), val, order) }
+                unsafe { ops::atomic_xor(self.inner_ptr(), val, order) }
             }
         }
     )*);
@@ -344,13 +353,13 @@ macro_rules! atomic_ops_signed {
                 /// Minimum with the current value.
                 #[inline]
                 pub fn fetch_min(&self, val: $t, order: Ordering) -> $t {
-                    unsafe { ops::atomic_min(self.v.get(), val, order) }
+                    unsafe { ops::atomic_min(self.inner_ptr(), val, order) }
                 }
 
                 /// Maximum with the current value.
                 #[inline]
                 pub fn fetch_max(&self, val: $t, order: Ordering) -> $t {
-                    unsafe { ops::atomic_max(self.v.get(), val, order) }
+                    unsafe { ops::atomic_max(self.inner_ptr(), val, order) }
                 }
             }
         )*
@@ -364,13 +373,13 @@ macro_rules! atomic_ops_unsigned {
                 /// Minimum with the current value.
                 #[inline]
                 pub fn fetch_min(&self, val: $t, order: Ordering) -> $t {
-                    unsafe { ops::atomic_umin(self.v.get(), val, order) }
+                    unsafe { ops::atomic_umin(self.inner_ptr(), val, order) }
                 }
 
                 /// Maximum with the current value.
                 #[inline]
                 pub fn fetch_max(&self, val: $t, order: Ordering) -> $t {
-                    unsafe { ops::atomic_umax(self.v.get(), val, order) }
+                    unsafe { ops::atomic_umax(self.inner_ptr(), val, order) }
                 }
             }
         )*

@@ -6,12 +6,13 @@
 // copied, modified, or distributed except according to those terms.
 
 use core::cmp;
+use core::hint;
 use core::mem;
 use core::num::Wrapping;
 use core::ops;
 use core::ptr;
 use core::slice;
-use core::sync::atomic::{self, AtomicUsize, Ordering};
+use core::sync::atomic::{AtomicUsize, Ordering};
 
 // We use an AtomicUsize instead of an AtomicBool because it performs better
 // on architectures that don't have byte-sized atomics.
@@ -28,7 +29,7 @@ impl SpinLock {
             .is_err()
         {
             while self.0.load(Ordering::Relaxed) != 0 {
-                atomic::spin_loop_hint();
+                hint::spin_loop();
             }
         }
     }
