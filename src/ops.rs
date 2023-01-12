@@ -40,7 +40,7 @@ macro_rules! match_atomic {
 
                 $impl
             }
-            #[cfg(target_has_atomic = "128")]
+            #[cfg(all(feature = "nightly", target_has_atomic = "128"))]
             16 if mem::align_of::<$type>() >= 16 => {
                 type $atomic = core::sync::atomic::AtomicU128;
 
@@ -81,7 +81,7 @@ macro_rules! match_signed_atomic {
 
                 $impl
             }
-            #[cfg(target_has_atomic = "128")]
+            #[cfg(all(feature = "nightly", target_has_atomic = "128"))]
             16 if mem::align_of::<$type>() >= 16 => {
                 type $atomic = core::sync::atomic::AtomicI128;
 
@@ -104,7 +104,10 @@ pub const fn atomic_is_lock_free<T>() -> bool {
         | (cfg!(target_has_atomic = "16") & (size == 2) & (align >= 2))
         | (cfg!(target_has_atomic = "32") & (size == 4) & (align >= 4))
         | (cfg!(target_has_atomic = "64") & (size == 8) & (align >= 8))
-        | (cfg!(target_has_atomic = "128") & (size == 16) & (align >= 16))
+        | (cfg!(feature = "nightly")
+            & cfg!(target_has_atomic = "128")
+            & (size == 16)
+            & (align >= 16))
 }
 
 #[inline]
