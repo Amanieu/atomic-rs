@@ -33,7 +33,7 @@
 #![warn(missing_docs)]
 #![warn(rust_2018_idioms)]
 #![no_std]
-#![cfg_attr(nightly, feature(integer_atomics))]
+#![cfg_attr(feature = "nightly", feature(integer_atomics))]
 
 #[cfg(any(test, feature = "std"))]
 #[macro_use]
