@@ -14,6 +14,4 @@ keywords = ["atomic", "no_std"]
 default = ["fallback"]
 std = []
 fallback = []
-
-[build-dependencies]
-autocfg = "1"
+nightly = []
