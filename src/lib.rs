@@ -74,7 +74,7 @@ unsafe impl<T: Copy + Send> Sync for Atomic<T> {}
 impl<T: Copy + RefUnwindSafe> RefUnwindSafe for Atomic<T> {}
 
 impl<T: Copy + Default> Default for Atomic<T> {
-    #[inline]
+    #[inline(always)]
     fn default() -> Self {
         Self::new(Default::default())
     }
@@ -90,7 +90,7 @@ impl<T: Copy + fmt::Debug> fmt::Debug for Atomic<T> {
 
 impl<T> Atomic<T> {
     /// Creates a new `Atomic`.
-    #[inline]
+    #[inline(always)]
     pub const fn new(v: T) -> Self {
         Self {
             v: UnsafeCell::new(MaybeUninit::new(v)),
@@ -102,7 +102,7 @@ impl<T> Atomic<T> {
     /// If an `Atomic` is not lock-free then it may be implemented using locks
     /// internally, which makes it unsuitable for some situations (such as
     /// communicating with a signal handler).
-    #[inline]
+    #[inline(always)]
     pub const fn is_lock_free() -> bool {
         ops::atomic_is_lock_free::<T>()
     }
@@ -112,7 +112,7 @@ impl<T: Copy> Atomic<T> {
     /// Returns a mutable pointer to the underlying type.
     ///
 
-    #[inline]
+    #[inline(always)]
     pub fn as_ptr(&self) -> *mut T {
         self.v.get() as *mut T
     }
@@ -121,7 +121,7 @@ impl<T: Copy> Atomic<T> {
     ///
     /// This is safe because the mutable reference guarantees that no other threads are
     /// concurrently accessing the atomic data.
-    #[inline]
+    #[inline(always)]
     pub fn get_mut(&mut self) -> &mut T {
         unsafe { &mut *self.as_ptr() }
     }
@@ -130,7 +130,7 @@ impl<T: Copy> Atomic<T> {
     ///
     /// This is safe because passing `self` by value guarantees that no other threads are
     /// concurrently accessing the atomic data.
-    #[inline]
+    #[inline(always)]
     pub fn into_inner(self) -> T {
         unsafe { self.v.into_inner().assume_init() }
     }
@@ -143,7 +143,7 @@ impl<T: Copy> Atomic<T> {
     /// # Panics
     ///
     /// Panics if `order` is `Release` or `AcqRel`.
-    #[inline]
+    #[inline(always)]
     pub fn load(&self, order: Ordering) -> T {
         unsafe { ops::atomic_load(self.as_ptr(), order) }
     }
@@ -156,7 +156,7 @@ impl<T: Copy> Atomic<T> {
     /// # Panics
     ///
     /// Panics if `order` is `Acquire` or `AcqRel`.
-    #[inline]
+    #[inline(always)]
     pub fn store(&self, val: T, order: Ordering) {
         unsafe {
             ops::atomic_store(self.as_ptr(), val, order);
@@ -167,7 +167,7 @@ impl<T: Copy> Atomic<T> {
     ///
     /// `swap` takes an `Ordering` argument which describes the memory ordering
     /// of this operation.
-    #[inline]
+    #[inline(always)]
     pub fn swap(&self, val: T, order: Ordering) -> T {
         unsafe { ops::atomic_swap(self.as_ptr(), val, order) }
     }
@@ -184,7 +184,7 @@ impl<T: Copy> Atomic<T> {
     /// the operation succeeds while the second describes the required ordering
     /// when the operation fails. The failure ordering can't be `Release` or
     /// `AcqRel` and must be equivalent or weaker than the success ordering.
-    #[inline]
+    #[inline(always)]
     pub fn compare_exchange(
         &self,
         current: T,
@@ -209,7 +209,7 @@ impl<T: Copy> Atomic<T> {
     /// when the operation fails. The failure ordering can't be `Release` or
     /// `AcqRel` and must be equivalent or weaker than the success ordering.
     /// success ordering.
-    #[inline]
+    #[inline(always)]
     pub fn compare_exchange_weak(
         &self,
         current: T,
@@ -256,7 +256,7 @@ impl<T: Copy> Atomic<T> {
     /// assert_eq!(x.fetch_update(Ordering::SeqCst, Ordering::SeqCst, |x| Some(x + 1)), Ok(8));
     /// assert_eq!(x.load(Ordering::SeqCst), 9);
     /// ```
-    #[inline]
+    #[inline(always)]
     pub fn fetch_update<F>(
         &self,
         set_order: Ordering,
@@ -284,7 +284,7 @@ impl Atomic<bool> {
     /// `val`, and sets the new value to the result.
     ///
     /// Returns the previous value.
-    #[inline]
+    #[inline(always)]
     pub fn fetch_and(&self, val: bool, order: Ordering) -> bool {
         unsafe { ops::atomic_and(self.as_ptr(), val, order) }
     }
@@ -295,7 +295,7 @@ impl Atomic<bool> {
     /// `val`, and sets the new value to the result.
     ///
     /// Returns the previous value.
-    #[inline]
+    #[inline(always)]
     pub fn fetch_or(&self, val: bool, order: Ordering) -> bool {
         unsafe { ops::atomic_or(self.as_ptr(), val, order) }
     }
@@ -306,7 +306,7 @@ impl Atomic<bool> {
     /// `val`, and sets the new value to the result.
     ///
     /// Returns the previous value.
-    #[inline]
+    #[inline(always)]
     pub fn fetch_xor(&self, val: bool, order: Ordering) -> bool {
         unsafe { ops::atomic_xor(self.as_ptr(), val, order) }
     }
@@ -316,31 +316,31 @@ macro_rules! atomic_ops_common {
     ($($t:ty)*) => ($(
         impl Atomic<$t> {
             /// Add to the current value, returning the previous value.
-            #[inline]
+            #[inline(always)]
             pub fn fetch_add(&self, val: $t, order: Ordering) -> $t {
                 unsafe { ops::atomic_add(self.as_ptr(), val, order) }
             }
 
             /// Subtract from the current value, returning the previous value.
-            #[inline]
+            #[inline(always)]
             pub fn fetch_sub(&self, val: $t, order: Ordering) -> $t {
                 unsafe { ops::atomic_sub(self.as_ptr(), val, order) }
             }
 
             /// Bitwise and with the current value, returning the previous value.
-            #[inline]
+            #[inline(always)]
             pub fn fetch_and(&self, val: $t, order: Ordering) -> $t {
                 unsafe { ops::atomic_and(self.as_ptr(), val, order) }
             }
 
             /// Bitwise or with the current value, returning the previous value.
-            #[inline]
+            #[inline(always)]
             pub fn fetch_or(&self, val: $t, order: Ordering) -> $t {
                 unsafe { ops::atomic_or(self.as_ptr(), val, order) }
             }
 
             /// Bitwise xor with the current value, returning the previous value.
-            #[inline]
+            #[inline(always)]
             pub fn fetch_xor(&self, val: $t, order: Ordering) -> $t {
                 unsafe { ops::atomic_xor(self.as_ptr(), val, order) }
             }
@@ -353,13 +353,13 @@ macro_rules! atomic_ops_signed {
         $(
             impl Atomic<$t> {
                 /// Minimum with the current value.
-                #[inline]
+                #[inline(always)]
                 pub fn fetch_min(&self, val: $t, order: Ordering) -> $t {
                     unsafe { ops::atomic_min(self.as_ptr(), val, order) }
                 }
 
                 /// Maximum with the current value.
-                #[inline]
+                #[inline(always)]
                 pub fn fetch_max(&self, val: $t, order: Ordering) -> $t {
                     unsafe { ops::atomic_max(self.as_ptr(), val, order) }
                 }
@@ -373,13 +373,13 @@ macro_rules! atomic_ops_unsigned {
         $(
             impl Atomic<$t> {
                 /// Minimum with the current value.
-                #[inline]
+                #[inline(always)]
                 pub fn fetch_min(&self, val: $t, order: Ordering) -> $t {
                     unsafe { ops::atomic_umin(self.as_ptr(), val, order) }
                 }
 
                 /// Maximum with the current value.
-                #[inline]
+                #[inline(always)]
                 pub fn fetch_max(&self, val: $t, order: Ordering) -> $t {
                     unsafe { ops::atomic_umax(self.as_ptr(), val, order) }
                 }
