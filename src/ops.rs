@@ -5,6 +5,8 @@
 // http://opensource.org/licenses/MIT>, at your option. This file may not be
 // copied, modified, or distributed except according to those terms.
 
+use bytemuck::NoUninit;
+
 #[cfg(feature = "fallback")]
 use crate::fallback;
 use core::cmp;
@@ -111,7 +113,7 @@ pub const fn atomic_is_lock_free<T>() -> bool {
 }
 
 #[inline]
-pub unsafe fn atomic_load<T>(dst: *mut T, order: Ordering) -> T {
+pub unsafe fn atomic_load<T: NoUninit>(dst: *mut T, order: Ordering) -> T {
     match_atomic!(
         T,
         A,
@@ -121,7 +123,7 @@ pub unsafe fn atomic_load<T>(dst: *mut T, order: Ordering) -> T {
 }
 
 #[inline]
-pub unsafe fn atomic_store<T>(dst: *mut T, val: T, order: Ordering) {
+pub unsafe fn atomic_store<T: NoUninit>(dst: *mut T, val: T, order: Ordering) {
     match_atomic!(
         T,
         A,
@@ -131,7 +133,7 @@ pub unsafe fn atomic_store<T>(dst: *mut T, val: T, order: Ordering) {
 }
 
 #[inline]
-pub unsafe fn atomic_swap<T>(dst: *mut T, val: T, order: Ordering) -> T {
+pub unsafe fn atomic_swap<T: NoUninit>(dst: *mut T, val: T, order: Ordering) -> T {
     match_atomic!(
         T,
         A,
@@ -149,7 +151,7 @@ unsafe fn map_result<T, U>(r: Result<T, T>) -> Result<U, U> {
 }
 
 #[inline]
-pub unsafe fn atomic_compare_exchange<T>(
+pub unsafe fn atomic_compare_exchange<T: NoUninit>(
     dst: *mut T,
     current: T,
     new: T,
@@ -170,7 +172,7 @@ pub unsafe fn atomic_compare_exchange<T>(
 }
 
 #[inline]
-pub unsafe fn atomic_compare_exchange_weak<T>(
+pub unsafe fn atomic_compare_exchange_weak<T: NoUninit>(
     dst: *mut T,
     current: T,
     new: T,
@@ -191,7 +193,7 @@ pub unsafe fn atomic_compare_exchange_weak<T>(
 }
 
 #[inline]
-pub unsafe fn atomic_add<T: Copy>(dst: *mut T, val: T, order: Ordering) -> T
+pub unsafe fn atomic_add<T: NoUninit>(dst: *mut T, val: T, order: Ordering) -> T
 where
     Wrapping<T>: ops::Add<Output = Wrapping<T>>,
 {
@@ -204,7 +206,7 @@ where
 }
 
 #[inline]
-pub unsafe fn atomic_sub<T: Copy>(dst: *mut T, val: T, order: Ordering) -> T
+pub unsafe fn atomic_sub<T: NoUninit>(dst: *mut T, val: T, order: Ordering) -> T
 where
     Wrapping<T>: ops::Sub<Output = Wrapping<T>>,
 {
@@ -217,7 +219,7 @@ where
 }
 
 #[inline]
-pub unsafe fn atomic_and<T: Copy + ops::BitAnd<Output = T>>(
+pub unsafe fn atomic_and<T: NoUninit + ops::BitAnd<Output = T>>(
     dst: *mut T,
     val: T,
     order: Ordering,
@@ -231,7 +233,7 @@ pub unsafe fn atomic_and<T: Copy + ops::BitAnd<Output = T>>(
 }
 
 #[inline]
-pub unsafe fn atomic_or<T: Copy + ops::BitOr<Output = T>>(
+pub unsafe fn atomic_or<T: NoUninit + ops::BitOr<Output = T>>(
     dst: *mut T,
     val: T,
     order: Ordering,
@@ -245,7 +247,7 @@ pub unsafe fn atomic_or<T: Copy + ops::BitOr<Output = T>>(
 }
 
 #[inline]
-pub unsafe fn atomic_xor<T: Copy + ops::BitXor<Output = T>>(
+pub unsafe fn atomic_xor<T: NoUninit + ops::BitXor<Output = T>>(
     dst: *mut T,
     val: T,
     order: Ordering,
@@ -259,7 +261,7 @@ pub unsafe fn atomic_xor<T: Copy + ops::BitXor<Output = T>>(
 }
 
 #[inline]
-pub unsafe fn atomic_min<T: Copy + cmp::Ord>(dst: *mut T, val: T, order: Ordering) -> T {
+pub unsafe fn atomic_min<T: NoUninit + cmp::Ord>(dst: *mut T, val: T, order: Ordering) -> T {
     match_signed_atomic!(
         T,
         A,
@@ -269,7 +271,7 @@ pub unsafe fn atomic_min<T: Copy + cmp::Ord>(dst: *mut T, val: T, order: Orderin
 }
 
 #[inline]
-pub unsafe fn atomic_max<T: Copy + cmp::Ord>(dst: *mut T, val: T, order: Ordering) -> T {
+pub unsafe fn atomic_max<T: NoUninit + cmp::Ord>(dst: *mut T, val: T, order: Ordering) -> T {
     match_signed_atomic!(
         T,
         A,
@@ -279,7 +281,7 @@ pub unsafe fn atomic_max<T: Copy + cmp::Ord>(dst: *mut T, val: T, order: Orderin
 }
 
 #[inline]
-pub unsafe fn atomic_umin<T: Copy + cmp::Ord>(dst: *mut T, val: T, order: Ordering) -> T {
+pub unsafe fn atomic_umin<T: NoUninit + cmp::Ord>(dst: *mut T, val: T, order: Ordering) -> T {
     match_atomic!(
         T,
         A,
@@ -289,7 +291,7 @@ pub unsafe fn atomic_umin<T: Copy + cmp::Ord>(dst: *mut T, val: T, order: Orderi
 }
 
 #[inline]
-pub unsafe fn atomic_umax<T: Copy + cmp::Ord>(dst: *mut T, val: T, order: Ordering) -> T {
+pub unsafe fn atomic_umax<T: NoUninit + cmp::Ord>(dst: *mut T, val: T, order: Ordering) -> T {
     match_atomic!(
         T,
         A,

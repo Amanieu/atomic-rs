@@ -7,12 +7,12 @@
 
 use core::cmp;
 use core::hint;
-use core::mem;
 use core::num::Wrapping;
 use core::ops;
 use core::ptr;
-use core::slice;
 use core::sync::atomic::{AtomicUsize, Ordering};
+
+use bytemuck::NoUninit;
 
 // We use an AtomicUsize instead of an AtomicBool because it performs better
 // on architectures that don't have byte-sized atomics.
@@ -117,15 +117,16 @@ pub unsafe fn atomic_swap<T>(dst: *mut T, val: T) -> T {
 }
 
 #[inline]
-pub unsafe fn atomic_compare_exchange<T>(dst: *mut T, current: T, new: T) -> Result<T, T> {
+pub unsafe fn atomic_compare_exchange<T: NoUninit>(
+    dst: *mut T,
+    current: T,
+    new: T,
+) -> Result<T, T> {
     let _l = lock(dst as usize);
     let result = ptr::read(dst);
     // compare_exchange compares with memcmp instead of Eq
-    let a = slice::from_raw_parts(&result as *const _ as *const u8, mem::size_of_val(&result));
-    let b = slice::from_raw_parts(
-        &current as *const _ as *const u8,
-        mem::size_of_val(&current),
-    );
+    let a = bytemuck::bytes_of(&result);
+    let b = bytemuck::bytes_of(&current);
     if a == b {
         ptr::write(dst, new);
         Ok(result)

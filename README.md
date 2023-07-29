@@ -3,13 +3,15 @@ Generic `Atomic<T>` for Rust
 
 [![Build Status](https://travis-ci.org/Amanieu/atomic-rs.svg?branch=master)](https://travis-ci.org/Amanieu/atomic-rs) [![Crates.io](https://img.shields.io/crates/v/atomic.svg)](https://crates.io/crates/atomic)
 
-A Rust library which provides a generic `Atomic<T>` type for all `T: Copy` types, unlike the standard library which only provides a few fixed atomic types (`AtomicBool`, `AtomicIsize`, `AtomicUsize`, `AtomicPtr`).
+A Rust library which provides a generic `Atomic<T>` type for all `T: NoUninit` types, unlike the standard library which only provides a few fixed atomic types (`AtomicBool`, `AtomicIsize`, `AtomicUsize`, `AtomicPtr`). The `NoUninit` bound is from the [bytemuck] crate, and indicates that a type has no internal padding bytes. You will need to derive or implement this trait for all types used with `Atomic<T>`.
 
 This library will use native atomic instructions if possible, and will otherwise fall back to a lock-based mechanism. You can use the `Atomic::<T>::is_lock_free()` function to check whether native atomic operations are supported for a given type. Note that a type must have a power-of-2 size and alignment in order to be used by native atomic instructions.
 
 This crate uses `#![no_std]` and only depends on libcore.
 
-[Documentation](https://amanieu.github.io/atomic-rs/atomic/index.html)
+[bytemuck]: https://docs.rs/bytemuck
+
+[Documentation](https://docs.rs/atomic)
 
 ## Usage
 

@@ -11,9 +11,13 @@
 //! threads, and are the building blocks of other concurrent types.
 //!
 //! This library defines a generic atomic wrapper type `Atomic<T>` for all
-//! `T: Copy` types.
+//! `T: NoUninit` types.
 //! Atomic types present operations that, when used correctly, synchronize
 //! updates between threads.
+//!
+//! The `NoUninit` bound is from the [bytemuck] crate, and indicates that a
+//! type has no internal padding bytes. You will need to derive or implement
+//! this trait for all types used with `Atomic<T>`.
 //!
 //! Each method takes an `Ordering` which represents the strength of
 //! the memory barrier for that operation. These orderings are the
@@ -29,6 +33,8 @@
 //! Most atomic types may be stored in static variables, initialized using
 //! the `const fn` constructors. Atomic statics are often used for lazy global
 //! initialization.
+//!
+//! [bytemuck]: https://docs.rs/bytemuck
 
 #![warn(missing_docs)]
 #![warn(rust_2018_idioms)]
@@ -48,6 +54,8 @@ use core::fmt;
 
 #[cfg(feature = "std")]
 use std::panic::RefUnwindSafe;
+
+use bytemuck::NoUninit;
 
 #[cfg(feature = "fallback")]
 mod fallback;
@@ -71,16 +79,16 @@ unsafe impl<T: Copy + Send> Sync for Atomic<T> {}
 // `Atomic` API does not allow doing any panic-inducing operation after writing
 // to the target object.
 #[cfg(feature = "std")]
-impl<T: Copy + RefUnwindSafe> RefUnwindSafe for Atomic<T> {}
+impl<T: RefUnwindSafe> RefUnwindSafe for Atomic<T> {}
 
-impl<T: Copy + Default> Default for Atomic<T> {
+impl<T: Default> Default for Atomic<T> {
     #[inline]
     fn default() -> Self {
         Self::new(Default::default())
     }
 }
 
-impl<T: Copy + fmt::Debug> fmt::Debug for Atomic<T> {
+impl<T: NoUninit + fmt::Debug> fmt::Debug for Atomic<T> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_tuple("Atomic")
             .field(&self.load(Ordering::SeqCst))
@@ -108,7 +116,7 @@ impl<T> Atomic<T> {
     }
 }
 
-impl<T: Copy> Atomic<T> {
+impl<T: NoUninit> Atomic<T> {
     #[inline]
     fn inner_ptr(&self) -> *mut T {
         self.v.get() as *mut T
@@ -392,13 +400,17 @@ atomic_ops_unsigned! { u8 u16 u32 u64 usize u128 }
 #[cfg(test)]
 mod tests {
     use super::{Atomic, Ordering::*};
+    use bytemuck::NoUninit;
     use core::mem;
 
-    #[derive(Copy, Clone, Eq, PartialEq, Debug, Default)]
+    #[derive(Copy, Clone, Eq, PartialEq, Debug, Default, NoUninit)]
+    #[repr(C)]
     struct Foo(u8, u8);
-    #[derive(Copy, Clone, Eq, PartialEq, Debug, Default)]
+    #[derive(Copy, Clone, Eq, PartialEq, Debug, Default, NoUninit)]
+    #[repr(C)]
     struct Bar(u64, u64);
-    #[derive(Copy, Clone, Eq, PartialEq, Debug, Default)]
+    #[derive(Copy, Clone, Eq, PartialEq, Debug, Default, NoUninit)]
+    #[repr(C)]
     struct Quux(u32);
 
     #[test]
