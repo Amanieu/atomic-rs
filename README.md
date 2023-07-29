@@ -19,7 +19,7 @@ Add this to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-atomic = "0.5"
+atomic = "0.6"
 ```
 
 and this to your crate root:
