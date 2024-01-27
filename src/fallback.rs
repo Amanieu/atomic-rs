@@ -22,10 +22,16 @@ use bytemuck::NoUninit;
 struct SpinLock(AtomicUsize);
 
 impl SpinLock {
-    fn lock(&self) {
+    fn lock(&self, order: Ordering) {
+        // If the corresponding atomic operation is `SeqCst`, acquire the lock
+        // with `SeqCst` ordering to ensure sequential consistency.
+        let success_order = match order {
+            Ordering::SeqCst => Ordering::SeqCst,
+            _ => Ordering::Acquire,
+        };
         while self
             .0
-            .compare_exchange_weak(0, 1, Ordering::Acquire, Ordering::Relaxed)
+            .compare_exchange_weak(0, 1, success_order, Ordering::Relaxed)
             .is_err()
         {
             while self.0.load(Ordering::Relaxed) != 0 {
@@ -37,8 +43,8 @@ impl SpinLock {
     fn unlock(&self, order: Ordering) {
         self.0.store(
             0,
-            // If the corresponding atomic operation was `SeqCst`, use `SeqCst`
-            // here to ensure sequential consistency. Otherwise, `Release` is fine.
+            // As with acquiring the lock, release the lock with `SeqCst`
+            // ordering if the corresponding atomic operation was `SeqCst`.
             match order {
                 Ordering::SeqCst => Ordering::SeqCst,
                 _ => Ordering::Release,
@@ -94,7 +100,7 @@ fn lock_for_addr(addr: usize) -> &'static SpinLock {
 #[inline]
 fn lock(addr: usize, order: Ordering) -> LockGuard {
     let lock = lock_for_addr(addr);
-    lock.lock();
+    lock.lock(order);
     LockGuard {
         lock,
         order,
