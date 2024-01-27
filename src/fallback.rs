@@ -22,10 +22,16 @@ use bytemuck::NoUninit;
 struct SpinLock(AtomicUsize);
 
 impl SpinLock {
-    fn lock(&self) {
+    fn lock(&self, order: Ordering) {
+        // If the corresponding atomic operation is `SeqCst`, acquire the lock
+        // with `SeqCst` ordering to ensure sequential consistency.
+        let success_order = match order {
+            Ordering::SeqCst => Ordering::SeqCst,
+            _ => Ordering::Acquire,
+        };
         while self
             .0
-            .compare_exchange_weak(0, 1, Ordering::Acquire, Ordering::Relaxed)
+            .compare_exchange_weak(0, 1, success_order, Ordering::Relaxed)
             .is_err()
         {
             while self.0.load(Ordering::Relaxed) != 0 {
@@ -34,8 +40,16 @@ impl SpinLock {
         }
     }
 
-    fn unlock(&self) {
-        self.0.store(0, Ordering::Release);
+    fn unlock(&self, order: Ordering) {
+        self.0.store(
+            0,
+            // As with acquiring the lock, release the lock with `SeqCst`
+            // ordering if the corresponding atomic operation was `SeqCst`.
+            match order {
+                Ordering::SeqCst => Ordering::SeqCst,
+                _ => Ordering::Release,
+            },
+        );
     }
 }
 
@@ -84,35 +98,43 @@ fn lock_for_addr(addr: usize) -> &'static SpinLock {
 }
 
 #[inline]
-fn lock(addr: usize) -> LockGuard {
+fn lock(addr: usize, order: Ordering) -> LockGuard {
     let lock = lock_for_addr(addr);
-    lock.lock();
-    LockGuard(lock)
+    lock.lock(order);
+    LockGuard {
+        lock,
+        order,
+    }
 }
 
-struct LockGuard(&'static SpinLock);
+struct LockGuard {
+    lock: &'static SpinLock,
+    /// The ordering of the atomic operation for which the lock was obtained.
+    order: Ordering,
+}
+
 impl Drop for LockGuard {
     #[inline]
     fn drop(&mut self) {
-        self.0.unlock();
+        self.lock.unlock(self.order);
     }
 }
 
 #[inline]
-pub unsafe fn atomic_load<T>(dst: *mut T) -> T {
-    let _l = lock(dst as usize);
+pub unsafe fn atomic_load<T>(dst: *mut T, order: Ordering) -> T {
+    let _l = lock(dst as usize, order);
     ptr::read(dst)
 }
 
 #[inline]
-pub unsafe fn atomic_store<T>(dst: *mut T, val: T) {
-    let _l = lock(dst as usize);
+pub unsafe fn atomic_store<T>(dst: *mut T, val: T, order: Ordering) {
+    let _l = lock(dst as usize, order);
     ptr::write(dst, val);
 }
 
 #[inline]
-pub unsafe fn atomic_swap<T>(dst: *mut T, val: T) -> T {
-    let _l = lock(dst as usize);
+pub unsafe fn atomic_swap<T>(dst: *mut T, val: T, order: Ordering) -> T {
+    let _l = lock(dst as usize, order);
     ptr::replace(dst, val)
 }
 
@@ -121,8 +143,10 @@ pub unsafe fn atomic_compare_exchange<T: NoUninit>(
     dst: *mut T,
     current: T,
     new: T,
+    success: Ordering,
+    failure: Ordering,
 ) -> Result<T, T> {
-    let _l = lock(dst as usize);
+    let mut l = lock(dst as usize, success);
     let result = ptr::read(dst);
     // compare_exchange compares with memcmp instead of Eq
     let a = bytemuck::bytes_of(&result);
@@ -131,67 +155,69 @@ pub unsafe fn atomic_compare_exchange<T: NoUninit>(
         ptr::write(dst, new);
         Ok(result)
     } else {
+        // Use the failure ordering instead in this case.
+        l.order = failure;
         Err(result)
     }
 }
 
 #[inline]
-pub unsafe fn atomic_add<T: Copy>(dst: *mut T, val: T) -> T
+pub unsafe fn atomic_add<T: Copy>(dst: *mut T, val: T, order: Ordering) -> T
 where
     Wrapping<T>: ops::Add<Output = Wrapping<T>>,
 {
-    let _l = lock(dst as usize);
+    let _l = lock(dst as usize, order);
     let result = ptr::read(dst);
     ptr::write(dst, (Wrapping(result) + Wrapping(val)).0);
     result
 }
 
 #[inline]
-pub unsafe fn atomic_sub<T: Copy>(dst: *mut T, val: T) -> T
+pub unsafe fn atomic_sub<T: Copy>(dst: *mut T, val: T, order: Ordering) -> T
 where
     Wrapping<T>: ops::Sub<Output = Wrapping<T>>,
 {
-    let _l = lock(dst as usize);
+    let _l = lock(dst as usize, order);
     let result = ptr::read(dst);
     ptr::write(dst, (Wrapping(result) - Wrapping(val)).0);
     result
 }
 
 #[inline]
-pub unsafe fn atomic_and<T: Copy + ops::BitAnd<Output = T>>(dst: *mut T, val: T) -> T {
-    let _l = lock(dst as usize);
+pub unsafe fn atomic_and<T: Copy + ops::BitAnd<Output = T>>(dst: *mut T, val: T, order: Ordering) -> T {
+    let _l = lock(dst as usize, order);
     let result = ptr::read(dst);
     ptr::write(dst, result & val);
     result
 }
 
 #[inline]
-pub unsafe fn atomic_or<T: Copy + ops::BitOr<Output = T>>(dst: *mut T, val: T) -> T {
-    let _l = lock(dst as usize);
+pub unsafe fn atomic_or<T: Copy + ops::BitOr<Output = T>>(dst: *mut T, val: T, order: Ordering) -> T {
+    let _l = lock(dst as usize, order);
     let result = ptr::read(dst);
     ptr::write(dst, result | val);
     result
 }
 
 #[inline]
-pub unsafe fn atomic_xor<T: Copy + ops::BitXor<Output = T>>(dst: *mut T, val: T) -> T {
-    let _l = lock(dst as usize);
+pub unsafe fn atomic_xor<T: Copy + ops::BitXor<Output = T>>(dst: *mut T, val: T, order: Ordering) -> T {
+    let _l = lock(dst as usize, order);
     let result = ptr::read(dst);
     ptr::write(dst, result ^ val);
     result
 }
 
 #[inline]
-pub unsafe fn atomic_min<T: Copy + cmp::Ord>(dst: *mut T, val: T) -> T {
-    let _l = lock(dst as usize);
+pub unsafe fn atomic_min<T: Copy + cmp::Ord>(dst: *mut T, val: T, order: Ordering) -> T {
+    let _l = lock(dst as usize, order);
     let result = ptr::read(dst);
     ptr::write(dst, cmp::min(result, val));
     result
 }
 
 #[inline]
-pub unsafe fn atomic_max<T: Copy + cmp::Ord>(dst: *mut T, val: T) -> T {
-    let _l = lock(dst as usize);
+pub unsafe fn atomic_max<T: Copy + cmp::Ord>(dst: *mut T, val: T, order: Ordering) -> T {
+    let _l = lock(dst as usize, order);
     let result = ptr::read(dst);
     ptr::write(dst, cmp::max(result, val));
     result
