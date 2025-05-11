@@ -397,6 +397,9 @@ macro_rules! atomic_ops_unsigned {
 atomic_ops_signed! { i8 i16 i32 i64 isize i128 }
 atomic_ops_unsigned! { u8 u16 u32 u64 usize u128 }
 
+#[cfg(feature = "serde")]
+mod serde_impl;
+
 #[cfg(test)]
 mod tests {
     use super::{Atomic, Ordering::*};
@@ -404,14 +407,35 @@ mod tests {
     use core::mem;
 
     #[derive(Copy, Clone, Eq, PartialEq, Debug, Default, NoUninit)]
+    #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
     #[repr(C)]
     struct Foo(u8, u8);
+
     #[derive(Copy, Clone, Eq, PartialEq, Debug, Default, NoUninit)]
+    #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
     #[repr(C)]
     struct Bar(u64, u64);
+
     #[derive(Copy, Clone, Eq, PartialEq, Debug, Default, NoUninit)]
+    #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
     #[repr(C)]
     struct Quux(u32);
+
+    #[cfg(feature = "serde")]
+    fn assert_serde<T>(atomic: &Atomic<T>, value: T)
+    where
+        T: NoUninit
+            + PartialEq
+            + std::fmt::Debug
+            + for<'a> serde::Deserialize<'a>
+            + serde::Serialize,
+    {
+        let s = serde_json::to_string(atomic).unwrap();
+        assert_eq!(s, serde_json::to_string(&value).unwrap());
+
+        let x: Atomic<T> = serde_json::from_str(&s).unwrap();
+        assert_eq!(x.load(SeqCst), value);
+    }
 
     #[test]
     fn atomic_bool() {
@@ -430,6 +454,9 @@ mod tests {
         assert_eq!(a.fetch_or(true, SeqCst), false);
         assert_eq!(a.fetch_xor(false, SeqCst), true);
         assert_eq!(a.load(SeqCst), true);
+
+        #[cfg(feature = "serde")]
+        assert_serde(&a, true);
     }
 
     #[test]
@@ -451,6 +478,9 @@ mod tests {
         assert_eq!(a.fetch_min(30, SeqCst), 71);
         assert_eq!(a.fetch_max(-25, SeqCst), 30);
         assert_eq!(a.load(SeqCst), 30);
+
+        #[cfg(feature = "serde")]
+        assert_serde(&a, 30);
     }
 
     #[test]
@@ -474,6 +504,9 @@ mod tests {
         assert_eq!(a.fetch_min(30, SeqCst), 71);
         assert_eq!(a.fetch_max(-25, SeqCst), 30);
         assert_eq!(a.load(SeqCst), 30);
+
+        #[cfg(feature = "serde")]
+        assert_serde(&a, 30);
     }
 
     #[test]
@@ -497,6 +530,9 @@ mod tests {
         assert_eq!(a.fetch_min(30, SeqCst), 71);
         assert_eq!(a.fetch_max(-25, SeqCst), 30);
         assert_eq!(a.load(SeqCst), 30);
+
+        #[cfg(feature = "serde")]
+        assert_serde(&a, 30);
     }
 
     #[test]
@@ -520,6 +556,9 @@ mod tests {
         assert_eq!(a.fetch_min(30, SeqCst), 71);
         assert_eq!(a.fetch_max(-25, SeqCst), 30);
         assert_eq!(a.load(SeqCst), 30);
+
+        #[cfg(feature = "serde")]
+        assert_serde(&a, 30);
     }
 
     #[test]
@@ -543,6 +582,9 @@ mod tests {
         assert_eq!(a.fetch_min(30, SeqCst), 71);
         assert_eq!(a.fetch_max(-25, SeqCst), 30);
         assert_eq!(a.load(SeqCst), 30);
+
+        #[cfg(feature = "serde")]
+        assert_serde(&a, 30);
     }
 
     #[test]
@@ -562,6 +604,9 @@ mod tests {
         assert_eq!(a.fetch_min(30, SeqCst), 71);
         assert_eq!(a.fetch_max(-25, SeqCst), 30);
         assert_eq!(a.load(SeqCst), 30);
+
+        #[cfg(feature = "serde")]
+        assert_serde(&a, 30);
     }
 
     #[test]
@@ -582,6 +627,9 @@ mod tests {
         assert_eq!(a.fetch_min(30, SeqCst), 71);
         assert_eq!(a.fetch_max(25, SeqCst), 30);
         assert_eq!(a.load(SeqCst), 30);
+
+        #[cfg(feature = "serde")]
+        assert_serde(&a, 30);
     }
 
     #[test]
@@ -605,6 +653,9 @@ mod tests {
         assert_eq!(a.fetch_min(30, SeqCst), 71);
         assert_eq!(a.fetch_max(25, SeqCst), 30);
         assert_eq!(a.load(SeqCst), 30);
+
+        #[cfg(feature = "serde")]
+        assert_serde(&a, 30);
     }
 
     #[test]
@@ -628,6 +679,9 @@ mod tests {
         assert_eq!(a.fetch_min(30, SeqCst), 71);
         assert_eq!(a.fetch_max(25, SeqCst), 30);
         assert_eq!(a.load(SeqCst), 30);
+
+        #[cfg(feature = "serde")]
+        assert_serde(&a, 30);
     }
 
     #[test]
@@ -651,6 +705,9 @@ mod tests {
         assert_eq!(a.fetch_min(30, SeqCst), 71);
         assert_eq!(a.fetch_max(25, SeqCst), 30);
         assert_eq!(a.load(SeqCst), 30);
+
+        #[cfg(feature = "serde")]
+        assert_serde(&a, 30);
     }
 
     #[test]
@@ -674,6 +731,9 @@ mod tests {
         assert_eq!(a.fetch_min(30, SeqCst), 71);
         assert_eq!(a.fetch_max(25, SeqCst), 30);
         assert_eq!(a.load(SeqCst), 30);
+
+        #[cfg(feature = "serde")]
+        assert_serde(&a, 30);
     }
 
     #[test]
@@ -693,6 +753,9 @@ mod tests {
         assert_eq!(a.fetch_min(30, SeqCst), 71);
         assert_eq!(a.fetch_max(25, SeqCst), 30);
         assert_eq!(a.load(SeqCst), 30);
+
+        #[cfg(feature = "serde")]
+        assert_serde(&a, 30);
     }
 
     #[test]
@@ -712,6 +775,9 @@ mod tests {
             Ok(Foo(2, 2))
         );
         assert_eq!(a.load(SeqCst), Foo(3, 3));
+
+        #[cfg(feature = "serde")]
+        assert_serde(&a, Foo(3, 3));
     }
 
     #[test]
@@ -731,6 +797,9 @@ mod tests {
             Ok(Bar(2, 2))
         );
         assert_eq!(a.load(SeqCst), Bar(3, 3));
+
+        #[cfg(feature = "serde")]
+        assert_serde(&a, Bar(3, 3));
     }
 
     #[test]
@@ -753,5 +822,8 @@ mod tests {
             Ok(Quux(2))
         );
         assert_eq!(a.load(SeqCst), Quux(3));
+
+        #[cfg(feature = "serde")]
+        assert_serde(&a, Quux(3));
     }
 }

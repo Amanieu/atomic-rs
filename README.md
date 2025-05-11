@@ -13,6 +13,16 @@ This crate uses `#![no_std]` and only depends on libcore.
 
 [Documentation](https://docs.rs/atomic)
 
+## Features
+
+This crate has the following [Cargo
+features](https://doc.rust-lang.org/cargo/reference/features.html):
+
+* `fallback`: Fall back to locks when atomic instructions cannot be
+  used. (Enabled by default.)
+* `serde`: Enables serialization and serialization of `Atomic<T>` with
+  [serde](https://docs.rs/serde/latest/serde/).
+
 ## Usage
 
 Add this to your `Cargo.toml`:
