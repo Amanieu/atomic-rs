@@ -14,7 +14,7 @@ where
         S: Serializer,
     {
         // Matches the atomic ordering used in `Debug` for `Atomic<T>`.
-        self.load(Ordering::SeqCst).serialize(serializer)
+        self.load(Ordering::Relaxed).serialize(serializer)
     }
 }
 

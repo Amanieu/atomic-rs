@@ -91,7 +91,7 @@ impl<T: Default> Default for Atomic<T> {
 impl<T: NoUninit + fmt::Debug> fmt::Debug for Atomic<T> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_tuple("Atomic")
-            .field(&self.load(Ordering::SeqCst))
+            .field(&self.load(Ordering::Relaxed))
             .finish()
     }
 }
