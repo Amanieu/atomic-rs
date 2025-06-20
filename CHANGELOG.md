@@ -11,6 +11,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Other
 
-- Add release-plz for automated releases
-- Use `Relaxed` memory ordering for `Debug` and serde serialization.
 - Implement (de)serialization with `serde`.
