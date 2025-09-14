@@ -535,6 +535,13 @@ mod tests {
         assert_serde(&a, 30);
     }
 
+    // on 32-bit x86 64 bit atomics exist, but they can't be used to implement
+    // atomic<i64> because AtomicI64 has a greater alignment requirement than
+    // i64.
+    #[cfg(any(
+        feature = "fallback",
+        all(target_has_atomic = "64", not(target_arch = "x86"))
+    ))]
     #[test]
     fn atomic_i64() {
         let a = Atomic::new(0i64);
@@ -561,6 +568,7 @@ mod tests {
         assert_serde(&a, 30);
     }
 
+    #[cfg(any(feature = "fallback", target_has_atomic = "128"))]
     #[test]
     fn atomic_i128() {
         let a = Atomic::new(0i128);
@@ -684,6 +692,13 @@ mod tests {
         assert_serde(&a, 30);
     }
 
+    // on 32-bit x86 64 bit atomics exist, but they can't be used to implement
+    // atomic<u64> because AtomicU64 has a greater alignment requirement than
+    // u64.
+    #[cfg(any(
+        feature = "fallback",
+        all(target_has_atomic = "64", not(target_arch = "x86"))
+    ))]
     #[test]
     fn atomic_u64() {
         let a = Atomic::new(0u64);
@@ -710,6 +725,7 @@ mod tests {
         assert_serde(&a, 30);
     }
 
+    #[cfg(any(feature = "fallback", target_has_atomic = "128"))]
     #[test]
     fn atomic_u128() {
         let a = Atomic::new(0u128);
@@ -758,6 +774,7 @@ mod tests {
         assert_serde(&a, 30);
     }
 
+    #[cfg(feature = "fallback")]
     #[test]
     fn atomic_foo() {
         let a = Atomic::default();
@@ -780,6 +797,7 @@ mod tests {
         assert_serde(&a, Foo(3, 3));
     }
 
+    #[cfg(feature = "fallback")]
     #[test]
     fn atomic_bar() {
         let a = Atomic::default();
