@@ -118,7 +118,7 @@ pub unsafe fn atomic_load<T: NoUninit>(dst: *mut T, order: Ordering) -> T {
         T,
         A,
         mem::transmute_copy(&(*(dst as *const A)).load(order)),
-        fallback::atomic_load(dst)
+        fallback::atomic_load(dst, order)
     )
 }
 
@@ -128,7 +128,7 @@ pub unsafe fn atomic_store<T: NoUninit>(dst: *mut T, val: T, order: Ordering) {
         T,
         A,
         (*(dst as *const A)).store(mem::transmute_copy(&val), order),
-        fallback::atomic_store(dst, val)
+        fallback::atomic_store(dst, val, order)
     )
 }
 
@@ -138,7 +138,7 @@ pub unsafe fn atomic_swap<T: NoUninit>(dst: *mut T, val: T, order: Ordering) -> 
         T,
         A,
         mem::transmute_copy(&(*(dst as *const A)).swap(mem::transmute_copy(&val), order)),
-        fallback::atomic_swap(dst, val)
+        fallback::atomic_swap(dst, val, order)
     )
 }
 
@@ -167,7 +167,7 @@ pub unsafe fn atomic_compare_exchange<T: NoUninit>(
             success,
             failure,
         )),
-        fallback::atomic_compare_exchange(dst, current, new)
+        fallback::atomic_compare_exchange(dst, current, new, success, failure)
     )
 }
 
@@ -188,7 +188,7 @@ pub unsafe fn atomic_compare_exchange_weak<T: NoUninit>(
             success,
             failure,
         )),
-        fallback::atomic_compare_exchange(dst, current, new)
+        fallback::atomic_compare_exchange(dst, current, new, success, failure)
     )
 }
 
@@ -201,7 +201,7 @@ where
         T,
         A,
         mem::transmute_copy(&(*(dst as *const A)).fetch_add(mem::transmute_copy(&val), order),),
-        fallback::atomic_add(dst, val)
+        fallback::atomic_add(dst, val, order)
     )
 }
 
@@ -214,7 +214,7 @@ where
         T,
         A,
         mem::transmute_copy(&(*(dst as *const A)).fetch_sub(mem::transmute_copy(&val), order),),
-        fallback::atomic_sub(dst, val)
+        fallback::atomic_sub(dst, val, order)
     )
 }
 
@@ -228,7 +228,7 @@ pub unsafe fn atomic_and<T: NoUninit + ops::BitAnd<Output = T>>(
         T,
         A,
         mem::transmute_copy(&(*(dst as *const A)).fetch_and(mem::transmute_copy(&val), order),),
-        fallback::atomic_and(dst, val)
+        fallback::atomic_and(dst, val, order)
     )
 }
 
@@ -242,7 +242,7 @@ pub unsafe fn atomic_or<T: NoUninit + ops::BitOr<Output = T>>(
         T,
         A,
         mem::transmute_copy(&(*(dst as *const A)).fetch_or(mem::transmute_copy(&val), order),),
-        fallback::atomic_or(dst, val)
+        fallback::atomic_or(dst, val, order)
     )
 }
 
@@ -256,7 +256,7 @@ pub unsafe fn atomic_xor<T: NoUninit + ops::BitXor<Output = T>>(
         T,
         A,
         mem::transmute_copy(&(*(dst as *const A)).fetch_xor(mem::transmute_copy(&val), order),),
-        fallback::atomic_xor(dst, val)
+        fallback::atomic_xor(dst, val, order)
     )
 }
 
@@ -266,7 +266,7 @@ pub unsafe fn atomic_min<T: NoUninit + cmp::Ord>(dst: *mut T, val: T, order: Ord
         T,
         A,
         mem::transmute_copy(&(*(dst as *const A)).fetch_min(mem::transmute_copy(&val), order),),
-        fallback::atomic_min(dst, val)
+        fallback::atomic_min(dst, val, order)
     )
 }
 
@@ -276,7 +276,7 @@ pub unsafe fn atomic_max<T: NoUninit + cmp::Ord>(dst: *mut T, val: T, order: Ord
         T,
         A,
         mem::transmute_copy(&(*(dst as *const A)).fetch_max(mem::transmute_copy(&val), order),),
-        fallback::atomic_max(dst, val)
+        fallback::atomic_max(dst, val, order)
     )
 }
 
@@ -286,7 +286,7 @@ pub unsafe fn atomic_umin<T: NoUninit + cmp::Ord>(dst: *mut T, val: T, order: Or
         T,
         A,
         mem::transmute_copy(&(*(dst as *const A)).fetch_min(mem::transmute_copy(&val), order),),
-        fallback::atomic_min(dst, val)
+        fallback::atomic_min(dst, val, order)
     )
 }
 
@@ -296,6 +296,6 @@ pub unsafe fn atomic_umax<T: NoUninit + cmp::Ord>(dst: *mut T, val: T, order: Or
         T,
         A,
         mem::transmute_copy(&(*(dst as *const A)).fetch_max(mem::transmute_copy(&val), order),),
-        fallback::atomic_max(dst, val)
+        fallback::atomic_max(dst, val, order)
     )
 }
